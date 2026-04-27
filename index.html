@@ -40,7 +40,6 @@
     .save-progress-wrap { background: var(--glass); border: var(--bdr); border-radius: var(--r-lg); padding: 1.25rem; box-shadow: var(--sh); backdrop-filter: blur(4px); margin-bottom: 1.5rem; }
     /* ── MAPS ── */
     .map-wrapper { position:relative; border-radius:var(--r-lg); overflow:hidden; border:var(--bdr); box-shadow:var(--sh); }
-    .map-iframe { width:100%; height:580px; border:none; display:block; }
     .map-filters { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
     .map-filter-btn { font-family:var(--ff-m); font-size:.72rem; font-weight:700; padding:.35rem .8rem;
       border-radius:6px; border:1.5px solid var(--line); background:var(--glass); color:var(--ink-s);
@@ -114,7 +113,10 @@
         <button class="nav-link"        data-nav="tierlist"   onclick="navigate('tierlist')">📊 Tier List</button>
         <button class="nav-link"        data-nav="achievements" onclick="navigate('achievements')">🏆 Succès</button>
         <button class="nav-link"        data-nav="dashboard"  onclick="navigate('dashboard')">🎮 Dashboard</button>
+        <button class="nav-link"        data-nav="journal"    onclick="navigate('journal')">📔 Journal</button>
         <button class="nav-link"        data-nav="planner"    onclick="navigate('planner')">🏗️ Base</button>
+        <button class="nav-link"        data-nav="stats"      onclick="navigate('stats')">📈 Stats</button>
+        <button class="nav-link"        data-nav="tracker"    onclick="navigate('tracker')">🎯 Tracker Alpha</button>
         <button class="nav-link"        data-nav="saveimport" onclick="navigate('saveimport')" style="background:linear-gradient(135deg,rgba(139,47,255,.2),rgba(0,187,255,.15));border:1.5px solid rgba(139,47,255,.5)">💾 Ma Save</button>
       </nav>
 
@@ -334,6 +336,9 @@
         <div id="work-filter-chips" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;align-items:center">
           <span style="font-size:.68rem;color:var(--ink-f);font-family:var(--ff-m);font-weight:700;letter-spacing:.05em">TRAVAIL :</span>
         </div>
+        <div id="habitat-filter-chips" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem;align-items:center">
+          <span style="font-size:.68rem;color:var(--ink-f);font-family:var(--ff-m);font-weight:700;letter-spacing:.05em">HABITAT :</span>
+        </div>
         <div style="display:flex;gap:.5rem;margin-top:.4rem;align-items:center;flex-wrap:wrap">
           <span style="font-size:.68rem;color:var(--ink-f);font-family:var(--ff-m);font-weight:700;letter-spacing:.05em">NIVEAU MIN :</span>
           <select id="work-level-min" onchange="renderPals()" style="font-family:var(--ff-m);font-size:.72rem;padding:.25rem .5rem;border-radius:6px;border:1.5px solid var(--line);background:var(--glass)">
@@ -375,6 +380,7 @@
         <button class="tab" onclick="setBreedTab('calculateur')">🧮 Calculateur</button>
         <button class="tab" onclick="setBreedTab('reverse')">🔍 Inversé</button>
         <button class="tab" onclick="setBreedTab('arbre')">🌳 Arbre</button>
+        <button class="tab" onclick="setBreedTab('simu')">🎲 Simulateur</button>
       </div>
 
       <!-- Mécaniques -->
@@ -479,6 +485,44 @@
             <div id="tree-result" style="margin-top:1rem">
               <span style="color:var(--ink-f);font-size:.88rem">Sélectionne un Pal pour voir son arbre d'élevage.</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulateur incubation -->
+      <div class="tab-panel" id="br-simu">
+        <div class="calc-wrap">
+          <div class="calc-box" style="max-width:680px">
+            <h3 style="font-family:var(--ff-d);font-size:1.3rem;margin-bottom:.3rem">🎲 Simulateur d'Incubation</h3>
+            <p style="font-size:.85rem;color:var(--ink-s);margin-bottom:1.25rem">
+              Calcule le nombre d'œufs nécessaires pour obtenir une combinaison précise de passives sur l'enfant.
+              Basé sur les taux officiels : Père 24% · Mère 20% · Aléatoire 21% · Aucune 34%.
+            </p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+              <div>
+                <label class="calc-lbl">Passives du Père (S) <span style="color:var(--ink-f)">0-4</span></label>
+                <input type="number" id="simu-dad" min="0" max="4" value="2"
+                  class="calc-select" style="width:100%" oninput="runSimulator()">
+              </div>
+              <div>
+                <label class="calc-lbl">Passives de la Mère (S) <span style="color:var(--ink-f)">0-4</span></label>
+                <input type="number" id="simu-mom" min="0" max="4" value="2"
+                  class="calc-select" style="width:100%" oninput="runSimulator()">
+              </div>
+            </div>
+
+            <div style="margin-bottom:1.25rem">
+              <label class="calc-lbl">Passives S souhaitées sur l'enfant</label>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.4rem">
+                <button class="tab active" id="simu-want-1" onclick="setSimuTarget(1,this)">1 passive S</button>
+                <button class="tab" id="simu-want-2" onclick="setSimuTarget(2,this)">2 passives S</button>
+                <button class="tab" id="simu-want-3" onclick="setSimuTarget(3,this)">3 passives S</button>
+                <button class="tab" id="simu-want-4" onclick="setSimuTarget(4,this)">4 passives S 🏆</button>
+              </div>
+            </div>
+
+            <div id="simu-result" style="margin-top:1.25rem"></div>
           </div>
         </div>
       </div>
@@ -636,6 +680,45 @@
   </main>
 
   <!-- ══════════════════════════════════════
+       PAGE : JOURNAL DE BORD
+  ══════════════════════════════════════ -->
+  <main id="pg-journal" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Mes aventures</div>
+        <h1>📔 <em>Journal</em> de Bord</h1>
+        <p class="page-lead">Historique de tes sessions, notes personnelles et évolution de ta progression.</p>
+      </div>
+
+      <!-- Nouvelle entrée -->
+      <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1.25rem;margin-bottom:1.5rem;box-shadow:var(--sh)">
+        <h3 style="font-family:var(--ff-d);font-size:1rem;margin-bottom:.85rem">✏️ Ajouter une entrée</h3>
+        <textarea id="journal-new-text" placeholder="Qu'as-tu accompli aujourd'hui ? Boss vaincus, Pals capturés, builds testés…"
+          style="width:100%;min-height:90px;padding:.65rem .85rem;border-radius:8px;border:1.5px solid var(--line);
+          background:var(--paper-d);color:var(--ink);font-family:var(--ff-m);font-size:.82rem;
+          resize:vertical;box-sizing:border-box;line-height:1.6;transition:border-color .15s"
+          onfocus="this.style.borderColor='var(--mint)'" onblur="this.style.borderColor='var(--line)'"></textarea>
+        <div style="display:flex;gap:.5rem;margin-top:.65rem;align-items:center;flex-wrap:wrap">
+          <select id="journal-mood" style="font-family:var(--ff-m);font-size:.8rem;padding:.35rem .6rem;border-radius:6px;border:1.5px solid var(--line);background:var(--glass)">
+            <option value="🔥">🔥 Session épique</option>
+            <option value="⚔️">⚔️ Combat intense</option>
+            <option value="🎯">🎯 Objectif atteint</option>
+            <option value="😤">😤 Session frustrante</option>
+            <option value="🌱">🌱 Session tranquille</option>
+            <option value="💞">💞 Breeding session</option>
+            <option value="🏗️">🏗️ Construction de base</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="addJournalEntry()">💾 Enregistrer</button>
+          <span style="font-size:.72rem;color:var(--ink-f);margin-left:auto" id="journal-autosave-hint"></span>
+        </div>
+      </div>
+
+      <!-- Historique -->
+      <div id="journal-history"></div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
        PAGE : PLANIFICATEUR DE BASE
   ══════════════════════════════════════ -->
   <main id="pg-planner" class="page">
@@ -668,11 +751,20 @@
   ══════════════════════════════════════ -->
   <main id="pg-dashboard" class="page">
     <div class="container" style="padding-top:2rem">
-      <div class="page-hdr">
+      <!-- Profil joueur -->
+      <div id="player-profile-bar" style="margin-bottom:1.5rem"></div>
+
+      <div class="page-hdr" style="margin-bottom:1.25rem">
         <div class="kicker">Ma Progression</div>
         <h1>🎮 <em>Tableau de bord</em></h1>
-        <p class="page-lead">Vue personnalisée basée sur ta sauvegarde. Importe ta save depuis la page <strong>💾 Ma Save</strong> pour activer le tableau de bord.</p>
       </div>
+
+      <!-- Missions dynamiques -->
+      <div id="missions-panel" style="margin-bottom:1.5rem"></div>
+
+      <!-- Guide de raid personnalisé -->
+      <div id="raid-guide-panel" style="margin-bottom:1.5rem"></div>
+
       <div id="dashboard-content">
         <div class="empty-state">
           <div style="font-size:3.5rem;margin-bottom:1rem">💾</div>
@@ -707,18 +799,15 @@
   <!-- ══════════════════════════════════════
        PAGE : MAPS
   ══════════════════════════════════════ -->
-  <main id="pg-maps" class="page" style="padding:0">
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <main id="pg-maps" class="page" style="padding:0;display:flex;flex-direction:column">
 
-    <!-- Barre de contrôles fixe au-dessus de la carte -->
+    <!-- Barre de contrôles -->
     <div id="map-controls" style="
       display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
-      padding:.6rem 1rem;background:var(--paper);border-bottom:var(--bdr);
-      position:sticky;top:0;z-index:500;">
-      <span style="font-family:var(--ff-d);font-weight:700;font-size:.9rem;flex-shrink:0">🗺️ Carte</span>
-      <div style="display:flex;gap:.35rem;flex-wrap:wrap;flex:1">
+      padding:.55rem 1rem;background:var(--paper);border-bottom:var(--bdr);
+      flex-shrink:0;z-index:10">
+      <span style="font-family:var(--ff-d);font-weight:700;font-size:.9rem;flex-shrink:0">🗺️ Carte de Palpagos</span>
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap;flex:1">
         <button class="map-filter-btn active" data-layer="tower"     onclick="toggleLayer('tower',this)">🗼 Tours</button>
         <button class="map-filter-btn active" data-layer="alpha"     onclick="toggleLayer('alpha',this)">⭐ Alpha</button>
         <button class="map-filter-btn active" data-layer="legendary" onclick="toggleLayer('legendary',this)">💎 Légendaires</button>
@@ -726,14 +815,128 @@
         <button class="map-filter-btn active" data-layer="teleport"  onclick="toggleLayer('teleport',this)">⚡ Téléports</button>
         <button class="map-filter-btn active" data-layer="fishing"   onclick="toggleLayer('fishing',this)">🎣 Pêche</button>
       </div>
-      <a href="https://palworld.gg/fr/map" target="_blank" rel="noopener"
-         style="font-family:var(--ff-m);font-size:.65rem;color:var(--mint-d);text-decoration:none;white-space:nowrap">
-        🔗 Carte complète ↗
-      </a>
+      <div style="display:flex;gap:.4rem;align-items:center;flex-shrink:0">
+        <button onclick="resetMapView()" style="font-family:var(--ff-m);font-size:.65rem;padding:.25rem .55rem;border-radius:5px;border:1.5px solid var(--line);background:var(--glass);cursor:pointer" title="Recentrer la carte">⌂ Reset</button>
+        <span style="font-size:.62rem;color:var(--ink-f)">🖱️ Clic+glisser · Molette zoom · Clic marqueur → fiche</span>
+        <a href="https://palworld.gg/fr/map" target="_blank" rel="noopener"
+           style="font-family:var(--ff-m);font-size:.65rem;color:var(--mint-d);text-decoration:none;white-space:nowrap">
+          🔗 Carte détaillée ↗
+        </a>
+      </div>
     </div>
 
-    <!-- Conteneur carte Leaflet -->
-    <div id="palworld-map" style="width:100%;height:calc(100vh - 120px);min-height:500px;background:#1a3a2a"></div>
+    <!-- Canvas carte -->
+    <div id="palworld-map" style="flex:1;min-height:0;background:#0F3050;position:relative"></div>
+  </main>
+
+  <!-- ══════════════════════════════
+       PAGE : STATISTIQUES
+  ══════════════════════════════ -->
+  <main id="pg-stats" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Analyse</div>
+        <h1>📈 <em>Statistiques</em></h1>
+        <p class="page-lead">Visualisation de ta progression et de ta collection.</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs" style="margin-bottom:1.5rem">
+        <button class="tab active" onclick="setStatsTab('progression',this)">📅 Progression</button>
+        <button class="tab" onclick="setStatsTab('elements',this)">🌊 Éléments</button>
+        <button class="tab" onclick="setStatsTab('travail',this)">🔨 Travail</button>
+        <button class="tab" onclick="setStatsTab('galerie',this)">🖼️ Galerie</button>
+      </div>
+
+      <!-- Progression (Chart.js) -->
+      <div id="stats-tab-progression" class="tab-panel active">
+        <div id="stats-no-save" style="display:none" class="empty-state">
+          <div style="font-size:3rem;margin-bottom:.75rem">📊</div>
+          <div class="empty-title">Importe ta save pour voir ta progression</div>
+          <button class="btn btn-primary btn-sm" onclick="navigate('saveimport')" style="margin-top:.75rem">💾 Importer</button>
+        </div>
+        <div id="stats-progression-content">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+            <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1rem;box-shadow:var(--sh)">
+              <div style="font-family:var(--ff-d);font-weight:700;margin-bottom:.75rem;font-size:.9rem">📅 Niveaux dans le temps</div>
+              <canvas id="chart-levels" height="180"></canvas>
+            </div>
+            <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1rem;box-shadow:var(--sh)">
+              <div style="font-family:var(--ff-d);font-weight:700;margin-bottom:.75rem;font-size:.9rem">🐾 Pals capturés dans le temps</div>
+              <canvas id="chart-captures" height="180"></canvas>
+            </div>
+          </div>
+          <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1rem;box-shadow:var(--sh)">
+            <div style="font-family:var(--ff-d);font-weight:700;margin-bottom:.75rem;font-size:.9rem">📊 Score de puissance dans le temps</div>
+            <canvas id="chart-scores" height="120"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Éléments -->
+      <div id="stats-tab-elements" class="tab-panel">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1rem;box-shadow:var(--sh)">
+            <div style="font-family:var(--ff-d);font-weight:700;margin-bottom:.75rem;font-size:.9rem">Tes Pals par élément</div>
+            <canvas id="chart-elements-mine" height="220"></canvas>
+          </div>
+          <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1rem;box-shadow:var(--sh)">
+            <div style="font-family:var(--ff-d);font-weight:700;margin-bottom:.75rem;font-size:.9rem">Distribution globale (tous les Pals)</div>
+            <canvas id="chart-elements-all" height="220"></canvas>
+          </div>
+        </div>
+        <div id="stats-elements-bars" style="margin-top:1rem"></div>
+      </div>
+
+      <!-- Travail -->
+      <div id="stats-tab-travail" class="tab-panel">
+        <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1rem;box-shadow:var(--sh);margin-bottom:1rem">
+          <div style="font-family:var(--ff-d);font-weight:700;margin-bottom:.75rem;font-size:.9rem">Couverture des postes de travail</div>
+          <canvas id="chart-travail" height="250"></canvas>
+        </div>
+        <div id="stats-travail-details"></div>
+      </div>
+
+      <!-- Galerie -->
+      <div id="stats-tab-galerie" class="tab-panel">
+        <div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+          <button class="map-filter-btn active" onclick="setGalerieFilter('all',this)">Tous</button>
+          <button class="map-filter-btn" onclick="setGalerieFilter('captured',this)">✅ Capturés</button>
+          <button class="map-filter-btn" onclick="setGalerieFilter('missing',this)">❌ Manquants</button>
+          <span style="font-size:.72rem;color:var(--ink-f);margin-left:auto" id="galerie-count"></span>
+        </div>
+        <div id="galerie-grid" style="display:flex;flex-wrap:wrap;gap:.4rem"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════
+       PAGE : TRACKER ALPHA
+  ══════════════════════════════ -->
+  <main id="pg-tracker" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Boss Alpha</div>
+        <h1>🎯 <em>Tracker</em> Alpha</h1>
+        <p class="page-lead">Checklist de tous les boss Alpha. Coche ceux que tu as capturés — sauvegardé localement.</p>
+      </div>
+
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem">
+        <button class="map-filter-btn active" onclick="setTrackerFilter('all',this)">Tous</button>
+        <button class="map-filter-btn" onclick="setTrackerFilter('missing',this)">❌ Restants</button>
+        <button class="map-filter-btn" onclick="setTrackerFilter('done',this)">✅ Capturés</button>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:.75rem">
+          <span id="tracker-progress-text" style="font-family:var(--ff-m);font-size:.75rem;color:var(--ink-f)"></span>
+          <button class="btn btn-ghost btn-sm" onclick="resetTracker()" style="font-size:.68rem">🗑️ Reset</button>
+        </div>
+      </div>
+
+      <div class="progress-track" style="margin-bottom:1.25rem">
+        <div class="progress-fill" id="tracker-fill" style="width:0%"></div>
+      </div>
+
+      <div id="tracker-grid"></div>
+    </div>
   </main>
 
   <!-- ══════════════════════════════════════

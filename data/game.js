@@ -149,7 +149,7 @@ const RECIPES = [
   {name:"Poudre à canon",         icon:"💥",via:"Établi pour armes",       ingredients:["1× Charbon de bois","1× Soufre"]},
   {name:"Charbon de bois",        icon:"🪵",via:"Fournaise de fortune",    ingredients:["2× Bois de charpente"]},
   {name:"Gâteau",                 icon:"🎂",via:"Table de cuisson",        ingredients:["5× Farine de blé","8× Baies rouges","7× Lait","8× Œuf","2× Miel"],
-   note:"Indispensable pour l'élevage au Ranch."},
+   note:"Indispensable pour l’élevage au Ranch."},
   {name:"Fusil d'assaut",         icon:"🔫",via:"Établi pour armes",      ingredients:["40× Lingot raffiné","10× Polymère","30× Fibre de carbone"]},
   {name:"Lance-fusées",           icon:"🚀",via:"Chaîne de production d'armes II",ingredients:["100× Lingot Paluminium","50× Circuit imprimé","20× Polymère"]},
   {name:"Fusil laser",            icon:"⚡",via:"Chaîne de production d'armes II",ingredients:["50× Plastacier","20× Circuit imprimé","30× Hexolite"]},
@@ -273,7 +273,7 @@ const PASSIVES = [
   {name:"Fortune",          tier:"A", effect:"Drops de qualité x2 parfois",           note:"Pour la collecte"},
   {name:"Rapide",           tier:"B", effect:"Vitesse travail+10%",                   note:"Bonus modeste"},
   {name:"Robuste",          tier:"B", effect:"HP+10%",                                note:"Un peu de résistance"},
-  {name:"Paresseux",        tier:"C", effect:"Vitesse travail -30%",                  note:"À éliminer par l'élevage"},
+  {name:"Paresseux",        tier:"C", effect:"Vitesse travail -30%",                  note:"À éliminer par l’élevage"},
   {name:"Stupide",          tier:"C", effect:"ATK-10%",                               note:"Négatif, à éviter"},
 ];
 

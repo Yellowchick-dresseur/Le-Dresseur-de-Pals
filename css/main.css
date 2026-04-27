@@ -16,6 +16,38 @@
   --sh-xl:8px 8px 0 var(--ink);
 }
 
+/* ── Thème Clair ── */
+[data-theme="light"] {
+  --paper:   #F8F6F0;
+  --paper-d: #EDEAE0;
+  --paper-h: #E0DDD0;
+  --ink:     #1A1A1A;
+  --ink-s:   #333333;
+  --ink-f:   #666666;
+  --line:    #D0CCC0;
+  --glass:   rgba(255,255,255,0.85);
+  --bdr:     1.5px solid #D0CCC0;
+  --sh:      2px 2px 0 rgba(0,0,0,.08);
+  --lagoon:  #0077AA;
+  --mint:    #007A40;
+  --mint-d:  #006030;
+}
+[data-theme="light"] .navbar { background: #2A5A20; }
+[data-theme="light"] .page { background: transparent; }
+[data-theme="light"] .pal-mini,
+[data-theme="light"] .modal-box,
+[data-theme="light"] .info-card,
+[data-theme="light"] .combo-card,
+[data-theme="light"] .poste-card,
+[data-theme="light"] .ach-card,
+[data-theme="light"] .tour-card,
+[data-theme="light"] .raid-card,
+[data-theme="light"] .leg-card { background: rgba(255,255,255,0.9); }
+[data-theme="light"] .hero-section { background: linear-gradient(135deg,rgba(10,26,6,.85),rgba(10,26,6,.7)); }
+[data-theme="light"] body { background: #E8E4D8; }
+
+
+
 /* Reset */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -26,9 +58,21 @@ body{
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:linear-gradient(180deg,rgba(0,0,0,.12) 0%,rgba(0,0,0,.04) 40%,rgba(5,20,2,.5) 100%);
+  background:linear-gradient(180deg,
+    rgba(2,10,1,.45) 0%,
+    rgba(3,12,1,.35) 30%,
+    rgba(5,18,2,.55) 70%,
+    rgba(2,8,1,.70) 100%
+  );
 }
-#app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+#app{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;
+  min-height:100vh;
+  background:rgba(5,20,3,.78);
+  backdrop-filter:blur(1px);
+  -webkit-backdrop-filter:blur(1px);
+}
 
 /* Typography */
 h1,h2,h3,h4{font-family:var(--ff-d);line-height:1.1;letter-spacing:-.01em;color:var(--ink)}
@@ -75,7 +119,12 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 
 /* ── PAGES ── */
 .page{display:none;flex:1;padding-bottom:4rem}
-.page.active{display:block;animation:fadeUp .4s ease-out}
+.page.active{
+  display:block;
+  animation:fadeUp .4s ease-out;
+  background:var(--paper);
+  min-height:calc(100vh - 70px);
+}
 
 /* ── BOUTONS GLOBAUX ── */
 .btn{
@@ -761,3 +810,68 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 #map-controls { position: sticky; top: 60px; z-index: 500; }
 .leaflet-popup-content-wrapper { border-radius: 8px !important; }
 .leaflet-popup-content { margin: 10px 14px !important; }
+
+/* ══════════════════════════════════════════════════
+   JOURNAL DE BORD & PROFIL JOUEUR
+══════════════════════════════════════════════════ */
+
+/* Profil bar */
+#player-profile-bar > div {
+  transition: box-shadow .2s;
+}
+#player-profile-bar > div:hover {
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+/* Missions */
+#missions-panel > div > div > div {
+  transition: transform .15s, box-shadow .15s;
+}
+#missions-panel > div > div > div:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.15);
+}
+
+/* Journal entries */
+#journal-history [style*="border-radius:var(--r-md)"] {
+  transition: transform .15s;
+}
+#journal-history [style*="border-radius:var(--r-md)"]:hover {
+  transform: translateX(3px);
+}
+
+/* Textarea journal */
+#journal-new-text {
+  transition: border-color .15s, box-shadow .15s;
+}
+#journal-new-text:focus {
+  box-shadow: 0 0 0 3px rgba(0,227,74,.15);
+}
+
+/* Score global donut */
+#base-score-panel .progress-fill {
+  transition: width 1s cubic-bezier(.25,.46,.45,.94);
+}
+
+/* Badge priorité urgente */
+@keyframes urgentPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .6; }
+}
+[style*="border-color:var(--coral)"] .progress-fill {
+  background: var(--coral) !important;
+}
+
+/* Avatar joueur */
+#player-profile-bar .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── Pages spéciales : fond transparent ── */
+#pg-maps.page.active,
+#pg-home.page.active {
+  background: transparent;
+}
+
+

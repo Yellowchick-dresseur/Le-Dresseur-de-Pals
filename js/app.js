@@ -55,6 +55,9 @@ function navigate(page) {
   if (page === 'dashboard') initDashboard();
   if (page === 'planner') initPlanner();
   if (page === 'saveimport') { /* page statique — aucun init requis */ }
+  if (page === 'journal')    { initJournal(); }
+  if (page === 'stats')     { initStats(); }
+  if (page === 'tracker')   { initTracker(); }
   if (page === 'breeding' && !state.breedingInitialized) { initBreeding(); state.breedingInitialized = true; }
   if (page === 'crafting' && !state.craftingInitialized) { initCrafting(); state.craftingInitialized = true; }
   if (page === 'guides' && !state.guidesInitialized) { initGuides(); state.guidesInitialized = true; }
@@ -107,6 +110,25 @@ function showToast(msg, type = 'info', duration = 3000) {
 }
 
 
+
+/* ── Mode Clair / Sombre ── */
+function initTheme() {
+  const saved = localStorage.getItem('dresseur_theme') || 'dark';
+  applyTheme(saved);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('dresseur_theme', theme);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
 /* ── HERO FEATURED PALS ── */
 function renderFeatured() {
   // ── Barre de stats globale ──
@@ -154,7 +176,10 @@ function palMiniCard(p, i = 0) {
       <div class="pm-els">${p.el.map(e => `<span class="pm-el" style="background:${EL[e].color}" title="${EL[e].name}">${elIconImg(e, 14) || EL[e].icon}</span>`).join('')}</div>
     </div>
     ${imgHtml ? `<div style="text-align:center;margin:.3rem 0">${imgHtml}</div>` : ''}
-    <div class="pm-name">${p.name}</div>
+    <div class="pm-name" style="display:flex;align-items:center;gap:.3rem">
+      ${p.name}
+      ${(function(){try{const n=JSON.parse(localStorage.getItem('dresseur_pal_notes')||'{}');return n[p.id]?'<span style="font-size:.6rem;opacity:.7" title="Tu as une note sur ce Pal">📝</span>':'';}catch{return '';}})()}
+    </div>
     <p class="pm-desc">${p.desc}</p>
     <div class="pm-stats">
       <div class="pm-stat"><span class="pm-stat-l">HP</span><span class="pm-stat-v" style="color:var(--coral)">${p.hp}</span></div>
@@ -169,6 +194,7 @@ function palMiniCard(p, i = 0) {
 function initPals() {
   buildElementFilters();
   buildWorkFilters();
+  initHabitatFilters();
   renderPals(PALS);
 }
 
@@ -267,15 +293,17 @@ function clearPalSearch() {
 function filteredPals() {
   const q = state.palFilter.search;
   const workFilter = typeof _activeWorkFilter !== 'undefined' ? _activeWorkFilter : 'all';
+  const habFilter  = typeof _habitatFilter !== 'undefined' ? _habitatFilter : null;
   const levelMin = parseInt(document.getElementById('work-level-min')?.value || '0');
 
   let list = PALS.filter(p => {
     const matchText = !q || p.name.toLowerCase().includes(q)
       || (p.nameEN && p.nameEN.toLowerCase().includes(q));
     const matchEl = !state.palFilter.element || p.el.includes(state.palFilter.element);
-    const matchWork = workFilter === 'all' || ((p.work||{})[workFilter] !== undefined);
+    const matchWork    = workFilter === 'all' || ((p.work||{})[workFilter] !== undefined);
+    const matchHabitat = !habFilter || (HABITATS[habFilter]||[]).includes(p.name);
     const matchLevel = levelMin === 0 || ((p.work||{})[workFilter] || 0) >= levelMin;
-    return matchText && matchEl && matchWork && matchLevel;
+    return matchText && matchEl && matchWork && matchLevel && matchHabitat;
   });
 
   // Tri
@@ -341,16 +369,23 @@ function palFullCard(p, i) {
 function openModal(id) {
   const p = PALS.find(x => x.id === id);
   if (!p) return;
-  const combosForPal = COMBOS.filter(c => c.child === p.name || c.parents.includes(p.name));
+  // BREEDING_COMBOS format : {p1, p2, child, note}
+  const combosForPal = BREEDING_COMBOS.filter(c =>
+    c.child === p.name || c.p1 === p.name || c.p2 === p.name
+  );
   const breedHTML = combosForPal.length
-    ? combosForPal.slice(0, 4).map(c => `
-      <div class="breed-row">
-        <strong>${c.parents[0]}</strong>
-        <span class="breed-x">×</span>
-        <strong>${c.parents[1]}</strong>
-        <span class="breed-arr">→</span>
-        <strong>${c.child}</strong>
-      </div>`).join('')
+    ? combosForPal.slice(0, 6).map(c => {
+        const isChild = c.child === p.name;
+        const p1obj = PALS.find(x=>x.name===c.p1), p2obj = PALS.find(x=>x.name===c.p2), chObj = PALS.find(x=>x.name===c.child);
+        return `<div class="breed-row" style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.4rem .5rem;background:var(--paper-d);border-radius:6px;margin-bottom:.3rem">
+          <div style="display:flex;align-items:center;gap:.25rem">${palImg(c.p1,28)}<strong style="font-size:.75rem">${c.p1}</strong></div>
+          <span class="breed-x">×</span>
+          <div style="display:flex;align-items:center;gap:.25rem">${palImg(c.p2,28)}<strong style="font-size:.75rem">${c.p2}</strong></div>
+          <span class="breed-arr">→</span>
+          <div style="display:flex;align-items:center;gap:.25rem">${palImg(c.child,32)}<strong style="font-size:.78rem;color:${isChild?'var(--sun)':'var(--mint-d)'}">${c.child}</strong></div>
+          ${c.note?`<span style="font-size:.62rem;color:var(--ink-f);margin-left:auto">${c.note}</span>`:''}
+        </div>`;
+      }).join('')
     : '<p style="color:var(--ink-f);font-size:.82rem">Aucun combo recensé pour ce Pal.</p>';
 
   const html = `
@@ -401,14 +436,52 @@ function openModal(id) {
           <div class="modal-section-ttl">Combos de breeding</div>
           <div class="breeding-results">${breedHTML}</div>
         </div>
-        <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
-          <button class="btn btn-secondary btn-sm" onclick="addToCompare('${p.id}');closeModal()">+ Comparer</button>
+        <div class="modal-section" style="border-top:var(--bdr);padding-top:1rem;margin-top:1rem">
+          <div class="modal-section-ttl">📝 Mes notes</div>
+          <textarea id="pal-note-${p.id}"
+            placeholder="Ajoute tes observations (passives, spawn confirmé, stratégie…)"
+            oninput="savePalNote('${p.id}', this.value)"
+            style="width:100%;min-height:70px;padding:.5rem .75rem;font-size:.8rem;
+              border-radius:6px;border:1.5px solid var(--line);background:var(--paper-d);
+              color:var(--ink);font-family:var(--ff-m);resize:vertical;box-sizing:border-box;
+              transition:border-color .15s;line-height:1.5"
+            onfocus="this.style.borderColor='var(--mint)'"
+            onblur="this.style.borderColor='var(--line)'"
+          >${getPalNote('${p.id}')}</textarea>
+        </div>
+        <div style="margin-top:1.25rem;display:flex;gap:.75rem;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="addToCompare('${p.id}');closeModal()">⚖️ Comparer</button>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('breeding');setTimeout(()=>{setBreedTab('arbre');document.getElementById('tree-target').value='${p.name}';buildBreedTree();},200);closeModal()">🌳 Arbre élevage</button>
           <button class="btn btn-ghost btn-sm" onclick="closeModal()">Fermer</button>
         </div>
       </div>
     </div>`;
   document.body.insertAdjacentHTML('beforeend', html);
   document.body.style.overflow = 'hidden';
+}
+
+
+/* ── Notes personnelles par Pal ── */
+function getPalNote(id) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('dresseur_pal_notes') || '{}');
+    return (notes[id] || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  } catch { return ''; }
+}
+
+function savePalNote(id, text) {
+  try {
+    const notes = JSON.parse(localStorage.getItem('dresseur_pal_notes') || '{}');
+    if (text.trim()) notes[id] = text;
+    else delete notes[id];
+    localStorage.setItem('dresseur_pal_notes', JSON.stringify(notes));
+    showToast('💾 Note sauvegardée', 'success', 1500);
+  } catch {}
+}
+
+function getAllPalNotes() {
+  try { return JSON.parse(localStorage.getItem('dresseur_pal_notes') || '{}'); }
+  catch { return {}; }
 }
 
 function closeModal() {
@@ -640,11 +713,20 @@ function initBreeding() {
 }
 
 function setBreedTab(id) {
-  document.querySelectorAll('#pg-breeding .tab').forEach((t, i) =>
-    t.classList.toggle('active', ['mecanique','combos','passives','calculateur'][i] === id));
+  // Activer le bon bouton tab (cherche par onclick ou par texte)
+  document.querySelectorAll('#pg-breeding .tab').forEach(t => {
+    const match = t.getAttribute('onclick')?.includes("'" + id + "'");
+    t.classList.toggle('active', !!match);
+  });
+  // Afficher le bon panel
   document.querySelectorAll('#pg-breeding .tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('br-' + id).classList.add('active');
+  const panel = document.getElementById('br-' + id);
+  if (panel) panel.classList.add('active');
   state.breedTab = id;
+  // Hooks d'initialisation
+  if (id === 'reverse') initReverseCalc();
+  if (id === 'arbre')   initBreedTree();
+  if (id === 'simu')    initSimulator();
 }
 
 function setComboFilter(tag) {
@@ -1174,6 +1256,7 @@ function closeGlobalSearch() {
 
 /* ── INIT ── */
 // Les boutons nav ont onclick direct dans le HTML, pas de binding JS nécessaire
+initTheme();
 renderFeatured();
 
 /* ══════════════════════════════════════════════════
@@ -1308,9 +1391,12 @@ function renderSaveResults(capturedIds, filename, analysis) {
 
 function showSaveTab(tab, btn) {
   document.querySelectorAll('#save-results .tab').forEach(t => t.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('save-tab-missing').style.display  = tab === 'missing'  ? '' : 'none';
-  document.getElementById('save-tab-captured').style.display = tab === 'captured' ? '' : 'none';
+  if (btn) btn.classList.add('active');
+  const allTabs = ['missing','captured','passives','gems','base-opt','breed-rec','dupes'];
+  allTabs.forEach(t => {
+    const el = document.getElementById('save-tab-' + t);
+    if (el) el.style.display = (t === tab) ? '' : 'none';
+  });
 }
 
 function escHtml(s) {
@@ -1877,191 +1963,407 @@ function onSaveAnalyzed(analysis) {
 }
 
 /* ══════════════════════════════════════════════════
-   PAGE MAPS — Carte Leaflet interactive
+   PAGE MAPS — Carte Canvas interactive
+   Coordonnées in-game Palworld (confirmées via communauté)
+   X : -900 (ouest) → +950 (est)
+   Y : -850 (nord) → +650 (sud)
 ══════════════════════════════════════════════════ */
 
-// Marqueurs par catégorie avec coordonnées en pixels sur la carte 2048×2048
-// Origine : coin haut-gauche = [-128, 0], coin bas-droit = [0, 128]
-// Conversion : x_jeu → lng, y_jeu → lat (axe Y inversé)
-// La carte officielle Palworld utilise un système de coordonnées centré
-
 const MAP_MARKERS = [
-  // ── TOURS (7) ──
-  { cat:'tower', name:'Tour Syndicat Rayne',            boss:'Zoe & Grizzbolt',   lv:15, x:33,  y:38,  pal:'Grizzbolt' },
-  { cat:'tower', name:'Tour Free Pal Alliance',          boss:'Lily & Lyleen',     lv:30, x:18,  y:52,  pal:'Lyleen' },
-  { cat:'tower', name:'Tour PAL Moonflowers',            boss:'Axel & Orserk',     lv:45, x:12,  y:75,  pal:'Orserk' },
-  { cat:'tower', name:'Tour PIDF',                       boss:'Marcus & Faleris',  lv:40, x:72,  y:78,  pal:'Faleris' },
-  { cat:'tower', name:'Tour Brothers of the Eternal Pyre', boss:'Victor & Shadowbeak', lv:45, x:30, y:82, pal:'Shadowbeak' },
-  { cat:'tower', name:'Tour Sakurajima',                 boss:'Saya & Selyne',     lv:50, x:85,  y:25,  pal:'Selyne' },
-  { cat:'tower', name:'Tour Feybreak',                   boss:'Bjorn & Bastigor',  lv:60, x:15,  y:20,  pal:'Bastigor' },
-
-  // ── LÉGENDAIRES (5) ──
-  { cat:'legendary', name:'Jetragon',    lv:55, x:14,  y:72,  pal:'Jetragon',    note:'Île Volcanique — Pic du Dragon' },
-  { cat:'legendary', name:'Frostallion', lv:55, x:58,  y:15,  pal:'Frostallion', note:'Toundra absolue — Sommet des neiges' },
-  { cat:'legendary', name:'Paladius',    lv:55, x:65,  y:72,  pal:'Paladius',    note:'Plaines Saintes — partage spawn avec Necromus' },
-  { cat:'legendary', name:'Necromus',    lv:55, x:66,  y:74,  pal:'Necromus',    note:'Désert des Âmes — partage spawn avec Paladius' },
-  { cat:'legendary', name:'Neptilius',   lv:60, x:50,  y:90,  pal:'Neptilius',   note:'Eaux profondes endgame' },
-
-  // ── BOSS ALPHA clés (14) ──
-  { cat:'alpha', name:'Anubis',      lv:47, x:63,  y:65, pal:'Anubis',       note:'Sanctuaire — Artisanat Lv4 + Minage Lv3' },
-  { cat:'alpha', name:'Lyleen',      lv:49, x:22,  y:85, pal:'Lyleen',       note:'Île Oubliée — Plantation+Pharmacie Lv3' },
-  { cat:'alpha', name:'Grizzbolt',   lv:23, x:32,  y:40, pal:'Grizzbolt',    note:'Collines ventées' },
-  { cat:'alpha', name:'Mammorest',   lv:38, x:38,  y:50, pal:'Mammorest',    note:'Forêt de bambous' },
-  { cat:'alpha', name:'Blazamut',    lv:49, x:15,  y:68, pal:'Blazamut',     note:'Île Volcanique — Minage+Allumage Lv4' },
-  { cat:'alpha', name:'Shadowbeak',  lv:50, x:28,  y:83, pal:'Shadowbeak',   note:'Île de la Désolation' },
-  { cat:'alpha', name:'Orserk',      lv:47, x:29,  y:84, pal:'Orserk',       note:'Île de la Désolation' },
-  { cat:'alpha', name:'Menasting',   lv:44, x:68,  y:76, pal:'Menasting',    note:'Dunes arides' },
-  { cat:'alpha', name:'Cryolinx',    lv:43, x:60,  y:18, pal:'Cryolinx',     note:'Montagne glacée' },
-  { cat:'alpha', name:'Digtoise',    lv:30, x:50,  y:45, pal:'Digtoise',     note:'Plateau du crépuscule' },
-  { cat:'alpha', name:'Warsect',     lv:38, x:55,  y:43, pal:'Warsect',      note:'Collines de la Résurrection' },
-  { cat:'alpha', name:'Quivern',     lv:23, x:53,  y:41, pal:'Quivern',      note:'Collines de la Résurrection' },
-  { cat:'alpha', name:'Kingpaca',    lv:38, x:40,  y:42, pal:'Kingpaca',     note:'Collines verdoyantes' },
-  { cat:'alpha', name:'Bastigor',    lv:60, x:16,  y:22, pal:'Bastigor',     note:'Feybreak — boss fort' },
-
-  // ── TÉLÉPORTS clés (8) ──
-  { cat:'teleport', name:'Plateau des Bénédictions', x:35, y:38,  note:'Point de départ' },
-  { cat:'teleport', name:'Petit Village',             x:33, y:40,  note:'Marchand permanent' },
-  { cat:'teleport', name:'Désert Desséché',           x:65, y:70,  note:'Accès endgame désert' },
-  { cat:'teleport', name:'Île Volcanique — Sommet',   x:13, y:70,  note:'Proche Jetragon' },
-  { cat:'teleport', name:'Toundra Absolue',            x:57, y:14,  note:'Proche Frostallion' },
-  { cat:'teleport', name:'Île de la Désolation',      x:28, y:82,  note:'Shadowbeak + Orserk' },
-  { cat:'teleport', name:'Oil Rig (Syndicat Rayne)',  x:42, y:90,  note:'Ressources endgame Lv55' },
-  { cat:'teleport', name:'Sanctuaire du Désert',      x:64, y:64,  note:'Anubis Alpha nearby' },
-
-  // ── DONJONS zones (8) ──
-  { cat:'dungeon', name:'Donjons Collines Ventées',   x:35, y:37, note:'Niv 1-20 · Faciles' },
-  { cat:'dungeon', name:'Donjons Plateau Crépuscule', x:50, y:44, note:'Niv 20-35 · Digtoise, Tombat' },
-  { cat:'dungeon', name:'Donjons Dunes Arides',        x:67, y:74, note:'Niv 35-45 · Menasting, Anubis' },
-  { cat:'dungeon', name:'Donjons Île Volcanique',      x:14, y:69, note:'Niv 40-55 · Les plus rentables' },
-  { cat:'dungeon', name:'Donjons Île Désolation',     x:29, y:83, note:'Niv 45-55 · Orserk, Shadowbeak' },
-  { cat:'dungeon', name:'Donjons Feybreak',            x:15, y:21, note:'Niv 55-65 · Fragments Slab Xeno' },
-  { cat:'dungeon', name:'Sanctuaires Scellés ×16',    x:45, y:60, note:'Grands Alpha endgame' },
-  { cat:'dungeon', name:'Donjons Sakurajima',          x:85, y:24, note:'Niv 50+ · Nouveaux Pals' },
-
-  // ── PÊCHE (4) ──
-  { cat:'fishing', name:'Spot Maître — Île Été',    x:20, y:88, note:'Lurker Hunter · Canne max requise' },
-  { cat:'fishing', name:'Spot Maître — Côte Ouest', x:78, y:55, note:'Deuxième spot Lurker' },
-  { cat:'fishing', name:'Spots Archipel Brise',     x:25, y:45, note:'Kelpsea, Celaray · Débutant' },
-  { cat:'fishing', name:'Spots Terraria',            x:55, y:88, note:'Nouveaux Pals aquatiques' },
+  // ── TOURS ──
+  {cat:'tower',     name:'Tour Syndicat Rayne',        boss:'Zoe & Grizzbolt',    lv:15,  gx:-100,  gy:-408, pal:'Grizzbolt'},
+  {cat:'tower',     name:'Tour Free Pal Alliance',     boss:'Lily & Lyleen',       lv:30,  gx:-580,  gy:  22, pal:'Lyleen'},
+  {cat:'tower',     name:'Tour PAL Moonflowers',       boss:'Axel & Orserk',       lv:45,  gx:-590,  gy:-490, pal:'Orserk'},
+  {cat:'tower',     name:'Tour PIDF',                  boss:'Marcus & Faleris',    lv:40,  gx: 490,  gy:-720, pal:'Faleris'},
+  {cat:'tower',     name:'Tour Brothers Eternal Pyre', boss:'Victor & Shadowbeak', lv:45,  gx:-127,  gy: 460, pal:'Shadowbeak'},
+  {cat:'tower',     name:'Tour Sakurajima',            boss:'Saya & Selyne',       lv:50,  gx: 750,  gy:-380, pal:'Selyne'},
+  {cat:'tower',     name:'Tour Feybreak',              boss:'Bjorn & Bastigor',    lv:60,  gx:-480,  gy:-650, pal:'Bastigor'},
+  // ── LÉGENDAIRES ──
+  {cat:'legendary', name:'Jetragon',    lv:55, gx:-789, gy:-320, pal:'Jetragon',    note:'Sprint 3300'},
+  {cat:'legendary', name:'Frostallion', lv:55, gx: 426, gy: 168, pal:'Frostallion', note:'Meilleure monture volante'},
+  {cat:'legendary', name:'Paladius',    lv:55, gx: 447, gy:-671, pal:'Paladius',    note:'Partage spawn avec Necromus'},
+  {cat:'legendary', name:'Necromus',    lv:55, gx: 460, gy:-680, pal:'Necromus',    note:'Partage spawn avec Paladius'},
+  {cat:'legendary', name:'Neptilius',   lv:60, gx:  50, gy: 500, pal:'Neptilius',   note:'Arrosage Lv4'},
+  // ── BOSS ALPHA ──
+  {cat:'alpha', name:'Anubis',     lv:47, gx: 122, gy:-462, pal:'Anubis',    note:'Artisanat Lv4 + Minage Lv3'},
+  {cat:'alpha', name:'Lyleen',     lv:49, gx:-178, gy: 449, pal:'Lyleen',    note:'Plantation+Pharmacie Lv3'},
+  {cat:'alpha', name:'Grizzbolt',  lv:23, gx:-113, gy:-408, pal:'Grizzbolt'},
+  {cat:'alpha', name:'Mammorest',  lv:38, gx:-210, gy: -20, pal:'Mammorest'},
+  {cat:'alpha', name:'Blazamut',   lv:49, gx:-569, gy:-482, pal:'Blazamut',  note:'Minage+Allumage Lv4'},
+  {cat:'alpha', name:'Shadowbeak', lv:50, gx:-120, gy: 450, pal:'Shadowbeak'},
+  {cat:'alpha', name:'Orserk',     lv:47, gx:-110, gy: 440, pal:'Orserk',    note:'Génération Lv4'},
+  {cat:'alpha', name:'Menasting',  lv:44, gx: 355, gy:-595, pal:'Menasting'},
+  {cat:'alpha', name:'Cryolinx',   lv:43, gx: 426, gy: 131, pal:'Cryolinx'},
+  {cat:'alpha', name:'Digtoise',   lv:30, gx: 187, gy:-283, pal:'Digtoise'},
+  {cat:'alpha', name:'Warsect',    lv:38, gx: 205, gy: -55, pal:'Warsect'},
+  {cat:'alpha', name:'Kingpaca',   lv:38, gx:-124, gy:-197, pal:'Kingpaca'},
+  {cat:'alpha', name:'Bastigor',   lv:60, gx:-450, gy:-600, pal:'Bastigor'},
+  // ── TÉLÉPORTS ──
+  {cat:'teleport', name:'Plateau des Bénédictions', gx: -31, gy:-499, note:'Départ'},
+  {cat:'teleport', name:'Petit Village',             gx:-110, gy:-482, note:'Marchand permanent'},
+  {cat:'teleport', name:'Désert Desséché',           gx: 351, gy:-630, note:'Accès désert endgame'},
+  {cat:'teleport', name:'Sommet du Dragon',          gx:-789, gy:-300, note:'Proche Jetragon'},
+  {cat:'teleport', name:'Toundra Absolue',           gx: 420, gy: 180, note:'Proche Frostallion'},
+  {cat:'teleport', name:'Île de la Désolation',      gx:-120, gy: 440, note:'Shadowbeak + Orserk'},
+  {cat:'teleport', name:'Oil Rig Syndicat',          gx:  50, gy: 600, note:'Ressources Lv55'},
+  // ── DONJONS ──
+  {cat:'dungeon', name:'Collines Ventées',    gx: -80, gy:-390, note:'Niv 1-20'},
+  {cat:'dungeon', name:'Plateau Crépuscule',  gx: 180, gy:-280, note:'Niv 20-35'},
+  {cat:'dungeon', name:'Dunes Arides',        gx: 360, gy:-600, note:'Niv 35-45'},
+  {cat:'dungeon', name:'Île Volcanique',      gx:-580, gy:-450, note:'Niv 40-55'},
+  {cat:'dungeon', name:'Île Désolation',      gx:-110, gy: 420, note:'Niv 45-55'},
+  {cat:'dungeon', name:'Feybreak',            gx:-460, gy:-580, note:'Niv 55-65 · Slabs Xeno'},
+  {cat:'dungeon', name:'Sakurajima',          gx: 740, gy:-400, note:'Niv 50+'},
+  // ── PÊCHE ──
+  {cat:'fishing', name:'Spot Maître (Île Été)',  gx:-408, gy:-825, note:'Lurker Hunter'},
+  {cat:'fishing', name:'Spot Maître (Côte O.)',  gx: 920, gy: 208, note:'2e spot Lurker'},
+  {cat:'fishing', name:'Archipel Brise',         gx:-200, gy:-580, note:'Kelpsea, Celaray'},
 ];
 
-const CAT_CONFIG = {
-  tower:     { color:'#FF6B35', emoji:'🗼', label:'Tours' },
-  legendary: { color:'#FFD700', emoji:'💎', label:'Légendaires' },
-  alpha:     { color:'#FF4444', emoji:'⭐', label:'Boss Alpha' },
-  dungeon:   { color:'#00BFFF', emoji:'⛏️', label:'Donjons' },
-  teleport:  { color:'#00E34A', emoji:'⚡', label:'Téléports' },
-  fishing:   { color:'#4FC3F7', emoji:'🎣', label:'Pêche' },
+const CAT_CFG = {
+  tower:     {color:'#FF6B35', emoji:'🗼', label:'Tours'},
+  legendary: {color:'#FFD700', emoji:'💎', label:'Légendaires'},
+  alpha:     {color:'#FF3333', emoji:'⭐', label:'Boss Alpha'},
+  dungeon:   {color:'#00BFFF', emoji:'⛏️', label:'Donjons'},
+  teleport:  {color:'#00E34A', emoji:'⚡', label:'Téléports'},
+  fishing:   {color:'#4FC3F7', emoji:'🎣', label:'Pêche'},
 };
 
-let _palMap = null;
-let _mapLayers = {};
-let _activeLayers = new Set(['tower','alpha','legendary','dungeon','teleport','fishing']);
+// Zones géographiques pour le fond de carte (dessinées en SVG)
+const MAP_ZONES = [
+  // [nom, color, points GX/GY polygone]
+  {name:'Îles Centrales',     color:'#2D5A27', points:[[-400,-500],[400,-500],[400,100],[-400,100]]},
+  {name:'Désert (Dunes)',     color:'#8B6914', points:[[200,-800],[650,-800],[650,-400],[200,-400]]},
+  {name:'Toundra (Glace)',    color:'#B0D4E8', points:[[200,-300],[600,-300],[600, 300],[200, 300]]},
+  {name:'Île Volcanique',     color:'#8B2500', points:[[-750,-650],[-400,-650],[-400,-300],[-750,-300]]},
+  {name:'Île Désolation',     color:'#3D1F5C', points:[[-300, 300],[  0, 300],[  0, 600],[-300, 600]]},
+  {name:'Sakurajima',         color:'#6B3A5C', points:[[ 600,-500],[ 900,-500],[ 900,-250],[ 600,-250]]},
+  {name:'Feybreak',           color:'#1A3D6B', points:[[-750,-700],[-300,-700],[-300,-500],[-750,-500]]},
+  {name:'Mer',                color:'#0F3050', points:[[-950,-850],[950,-850],[950,700],[-950,700]]},
+];
+
+// Étiquettes des zones
+const MAP_LABELS = [
+  {name:'Îles de Palpagos',   gx:   0, gy:-200, size:14},
+  {name:'Désert',             gx: 420, gy:-600, size:12},
+  {name:'Toundra',            gx: 400, gy:   0, size:12},
+  {name:'Île Volcanique',     gx:-580, gy:-480, size:11},
+  {name:'Île Désolation',     gx:-140, gy: 470, size:11},
+  {name:'Sakurajima',         gx: 750, gy:-380, size:11},
+  {name:'Feybreak',           gx:-540, gy:-580, size:11},
+];
+
+let _canvas = null, _ctx = null;
+let _scale = 1, _panX = 0, _panY = 0;
+let _isDragging = false, _dragStart = {x:0, y:0};
+let _activeLayers = new Set(['tower','legendary','alpha','dungeon','teleport','fishing']);
+let _tooltip = null;
+let _animFrame = null;
+
+// Bornes in-game
+const GX_MIN = -950, GX_MAX = 950, GY_MIN = -850, GY_MAX = 700;
 
 function initMaps() {
-  // Attendre que Leaflet soit chargé
-  if (typeof L === 'undefined') {
-    setTimeout(initMaps, 200);
-    return;
-  }
-  if (_palMap) {
-    _palMap.invalidateSize();
-    return;
+  const container = document.getElementById('palworld-map');
+  if (!container) return;
+
+  // Créer le canvas s’il n'existe pas encore
+  if (!document.getElementById('map-canvas')) {
+    container.innerHTML = '';
+    _canvas = document.createElement('canvas');
+    _canvas.id = 'map-canvas';
+    _canvas.style.cssText = 'display:block;cursor:grab;touch-action:none';
+    container.appendChild(_canvas);
+
+    // Tooltip
+    _tooltip = document.createElement('div');
+    _tooltip.id = 'map-tooltip';
+    _tooltip.style.cssText = `
+      position:absolute;background:rgba(10,26,6,.95);color:#fff;
+      padding:.5rem .85rem;border-radius:8px;font-size:.78rem;
+      pointer-events:none;display:none;z-index:100;
+      border:1.5px solid rgba(255,255,255,.2);max-width:240px;line-height:1.5;
+      box-shadow:0 4px 16px rgba(0,0,0,.5);`;
+    container.style.position = 'relative';
+    container.appendChild(_tooltip);
+
+    setupMapEvents();
+  } else {
+    _canvas = document.getElementById('map-canvas');
+    _ctx = _canvas.getContext('2d');
   }
 
-  // Dimensions de la carte image (2048×2048)
-  const W = 2048, H = 2048;
+  resizeMap();
+  renderMap();
 
-  // Initialiser Leaflet en mode CRS.Simple (pas de projection géographique)
-  _palMap = L.map('palworld-map', {
-    crs: L.CRS.Simple,
-    minZoom: -2,
-    maxZoom: 3,
-    zoomSnap: 0.5,
-    attributionControl: false,
+  window.addEventListener('resize', () => { resizeMap(); renderMap(); });
+}
+
+function resizeMap() {
+  const container = document.getElementById('palworld-map');
+  if (!_canvas || !container) return;
+  _canvas.width  = container.clientWidth;
+  _canvas.height = container.clientHeight;
+  _ctx = _canvas.getContext('2d');
+
+  // Centrer la carte au reset
+  if (_scale === 1 && _panX === 0 && _panY === 0) {
+    _scale = Math.min(_canvas.width, _canvas.height) / (GX_MAX - GX_MIN) * 0.85;
+    _panX = _canvas.width  / 2;
+    _panY = _canvas.height / 2;
+  }
+}
+
+// Convertir coordonnées in-game → pixels canvas
+function toScreen(gx, gy) {
+  const nx = (gx - GX_MIN) / (GX_MAX - GX_MIN) - 0.5;
+  const ny = (gy - GY_MIN) / (GY_MAX - GY_MIN) - 0.5;
+  return {
+    x: _panX + nx * (GX_MAX - GX_MIN) * _scale,
+    y: _panY + ny * (GY_MAX - GY_MIN) * _scale,
+  };
+}
+
+// Convertir pixels canvas → coordonnées in-game
+function toGame(px, py) {
+  const nx = (px - _panX) / ((GX_MAX - GX_MIN) * _scale) + 0.5;
+  const ny = (py - _panY) / ((GY_MAX - GY_MIN) * _scale) + 0.5;
+  return {
+    gx: Math.round(nx * (GX_MAX - GX_MIN) + GX_MIN),
+    gy: Math.round(ny * (GY_MAX - GY_MIN) + GY_MIN),
+  };
+}
+
+function renderMap() {
+  if (!_ctx || !_canvas) return;
+  const W = _canvas.width, H = _canvas.height;
+  _ctx.clearRect(0, 0, W, H);
+
+  // ── Fond mer ──
+  _ctx.fillStyle = '#0F3050';
+  _ctx.fillRect(0, 0, W, H);
+
+  // ── Zones géographiques ──
+  MAP_ZONES.forEach(zone => {
+    if (!zone.points.length) return;
+    _ctx.beginPath();
+    zone.points.forEach(([gx, gy], i) => {
+      const {x, y} = toScreen(gx, gy);
+      i === 0 ? _ctx.moveTo(x, y) : _ctx.lineTo(x, y);
+    });
+    _ctx.closePath();
+    _ctx.fillStyle = zone.color;
+    _ctx.fill();
+    _ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    _ctx.lineWidth = 1;
+    _ctx.stroke();
   });
 
-  // Image de la carte officielle Palworld (tile CDN public)
-  // On utilise une image PNG de la carte depuis un CDN public
-  const bounds = [[0, 0], [H, W]];
-  L.imageOverlay(
-    'https://raw.githubusercontent.com/Auxilor/eco-palworld-data/main/map/map.png',
-    bounds,
-    { opacity: 1, errorOverlayUrl: '' }
-  ).addTo(_palMap);
+  // ── Grille légère ──
+  _ctx.strokeStyle = 'rgba(255,255,255,.04)';
+  _ctx.lineWidth = 0.5;
+  for (let gx = -800; gx <= 800; gx += 200) {
+    const {x} = toScreen(gx, 0);
+    _ctx.beginPath(); _ctx.moveTo(x, 0); _ctx.lineTo(x, H); _ctx.stroke();
+  }
+  for (let gy = -800; gy <= 800; gy += 200) {
+    const {y} = toScreen(0, gy);
+    _ctx.beginPath(); _ctx.moveTo(0, y); _ctx.lineTo(W, y); _ctx.stroke();
+  }
 
-  // Fallback : fond coloré avec grille si l'image ne charge pas
-  _palMap.setView([H/2, W/2], -1);
-
-  // Créer les layers par catégorie
-  Object.keys(CAT_CONFIG).forEach(cat => {
-    _mapLayers[cat] = L.layerGroup().addTo(_palMap);
+  // ── Étiquettes de zones ──
+  MAP_LABELS.forEach(lbl => {
+    const {x, y} = toScreen(lbl.gx, lbl.gy);
+    if (x < -50 || x > W+50 || y < -20 || y > H+20) return;
+    _ctx.font = `bold ${Math.max(8, lbl.size * _scale * 0.6)}px 'Georgia',serif`;
+    _ctx.fillStyle = 'rgba(255,255,255,.35)';
+    _ctx.textAlign = 'center';
+    _ctx.fillText(lbl.name.toUpperCase(), x, y);
   });
 
-  // Ajouter les marqueurs
+  // ── Marqueurs ──
+  const r = Math.max(10, Math.min(20, 16 * _scale * 0.4));
+
   MAP_MARKERS.forEach(m => {
-    if (!_mapLayers[m.cat]) return;
+    if (!_activeLayers.has(m.cat)) return;
+    const cfg = CAT_CFG[m.cat];
+    if (!cfg) return;
+    const {x, y} = toScreen(m.gx, m.gy);
+    if (x < -r || x > W+r || y < -r || y > H+r) return;
 
-    // Convertir les % en pixels sur la carte
-    const px = m.x / 100 * W;
-    const py = (1 - m.y / 100) * H;
+    // Cercle de fond
+    _ctx.beginPath();
+    _ctx.arc(x, y, r, 0, Math.PI*2);
+    _ctx.fillStyle = cfg.color;
+    _ctx.fill();
+    _ctx.strokeStyle = '#fff';
+    _ctx.lineWidth = 2;
+    _ctx.stroke();
 
-    const cfg = CAT_CONFIG[m.cat];
-    const palObj = m.pal ? (typeof PALS !== 'undefined' ? PALS.find(p => p.name === m.pal) : null) : null;
+    // Emoji
+    _ctx.font = `${r * 1.1}px sans-serif`;
+    _ctx.textAlign = 'center';
+    _ctx.textBaseline = 'middle';
+    _ctx.fillText(cfg.emoji, x, y);
 
-    // Icône personnalisée
-    const iconHtml = `
-      <div style="
-        width:36px;height:36px;border-radius:50%;
-        background:${cfg.color};border:2.5px solid #fff;
-        display:flex;align-items:center;justify-content:center;
-        font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,.5);
-        cursor:pointer;transition:transform .15s;
-      " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${cfg.emoji}</div>`;
+    // Niveau (zoom suffisant)
+    if (_scale > 0.5 && m.lv) {
+      _ctx.font = `bold ${Math.max(7, r * 0.65)}px monospace`;
+      _ctx.fillStyle = '#fff';
+      _ctx.textBaseline = 'top';
+      _ctx.fillText(`${m.lv}`, x + r * 0.7, y - r);
+    }
+  });
 
-    const icon = L.divIcon({
-      html: iconHtml,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
-      className: '',
+  _ctx.textBaseline = 'alphabetic';
+}
+
+function setupMapEvents() {
+  let _lastTouches = null;
+
+  // ── Souris ──
+  _canvas.addEventListener('mousedown', e => {
+    _isDragging = true;
+    _dragStart = {x: e.clientX - _panX, y: e.clientY - _panY};
+    _canvas.style.cursor = 'grabbing';
+  });
+
+  _canvas.addEventListener('mousemove', e => {
+    const rect = _canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    if (_isDragging) {
+      _panX = e.clientX - _dragStart.x;
+      _panY = e.clientY - _dragStart.y;
+      if (_animFrame) cancelAnimationFrame(_animFrame);
+      _animFrame = requestAnimationFrame(renderMap);
+      _tooltip.style.display = 'none';
+      return;
+    }
+
+    // Survol : chercher le marqueur le plus proche
+    const r = Math.max(10, Math.min(20, 16 * _scale * 0.4));
+    let closest = null, closestDist = r * 1.5;
+    MAP_MARKERS.forEach(m => {
+      if (!_activeLayers.has(m.cat)) return;
+      const {x, y} = toScreen(m.gx, m.gy);
+      const dist = Math.hypot(mx - x, my - y);
+      if (dist < closestDist) { closestDist = dist; closest = m; }
     });
 
-    const popupContent = `
-      <div style="font-family:system-ui,sans-serif;min-width:180px">
-        <div style="font-weight:700;font-size:.95rem;margin-bottom:.3rem">${m.name}</div>
-        ${m.boss ? `<div style="font-size:.78rem;color:#555;margin-bottom:.25rem">👑 ${m.boss}</div>` : ''}
-        ${m.lv ? `<div style="font-size:.72rem;background:${cfg.color};color:#fff;display:inline-block;padding:.1rem .4rem;border-radius:4px;margin-bottom:.25rem;font-weight:700">Lv ${m.lv}</div>` : ''}
-        ${m.note ? `<div style="font-size:.75rem;color:#666;margin-top:.25rem">${m.note}</div>` : ''}
-        ${palObj ? `<button onclick="navigate('pals');setTimeout(()=>openModal('${palObj.id}'),200)"
-          style="margin-top:.4rem;font-size:.7rem;padding:.25rem .6rem;border-radius:4px;border:1px solid #ccc;background:#f5f5f5;cursor:pointer">
-          Voir fiche ${palObj.name}
-        </button>` : ''}
-      </div>`;
-
-    L.marker([py, px], { icon })
-      .bindPopup(popupContent, { maxWidth: 250 })
-      .addTo(_mapLayers[m.cat]);
+    if (closest) {
+      const cfg = CAT_CFG[closest.cat];
+      const palObj = closest.pal ? PALS.find(p => p.name === closest.pal) : null;
+      _tooltip.innerHTML = `
+        <div style="font-weight:700;font-size:.85rem;margin-bottom:.25rem">${cfg.emoji} ${closest.name}</div>
+        ${closest.boss ? `<div style="color:#aaa;font-size:.72rem">👑 ${closest.boss}</div>` : ''}
+        ${closest.lv   ? `<div style="color:${cfg.color};font-weight:700;font-size:.72rem">Lv ${closest.lv}</div>` : ''}
+        ${closest.note ? `<div style="color:#ccc;font-size:.7rem;margin-top:.2rem">${closest.note}</div>` : ''}
+        ${palObj       ? `<div style="color:#00E34A;font-size:.68rem;margin-top:.25rem">🖱️ Clic → fiche ${palObj.name}</div>` : ''}
+        <div style="color:#555;font-size:.6rem;margin-top:.25rem">(${closest.gx}, ${closest.gy})</div>`;
+      _tooltip.style.display = 'block';
+      _tooltip.style.left = (mx + 16) + 'px';
+      _tooltip.style.top  = (my - 10) + 'px';
+      _canvas.style.cursor = 'pointer';
+    } else {
+      _tooltip.style.display = 'none';
+      _canvas.style.cursor = 'grab';
+    }
   });
+
+  _canvas.addEventListener('mouseup',   () => { _isDragging = false; _canvas.style.cursor = 'grab'; });
+  _canvas.addEventListener('mouseleave',() => { _isDragging = false; _tooltip.style.display='none'; });
+
+  // ── Clic : ouvrir fiche Pal ──
+  _canvas.addEventListener('click', e => {
+    if (_isDragging) return;
+    const rect = _canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const r = Math.max(10, Math.min(22, 18 * _scale * 0.4));
+    MAP_MARKERS.forEach(m => {
+      if (!_activeLayers.has(m.cat)) return;
+      const {x, y} = toScreen(m.gx, m.gy);
+      if (Math.hypot(mx-x, my-y) < r) {
+        const palObj = m.pal ? PALS.find(p => p.name === m.pal) : null;
+        if (palObj) { navigate('pals'); setTimeout(() => openModal(palObj.id), 200); }
+      }
+    });
+  });
+
+  // ── Molette zoom ──
+  _canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = _canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.15 : 0.87;
+    const newScale = Math.max(0.12, Math.min(4, _scale * factor));
+    // Zoom centré sur le curseur
+    _panX = mx + (_panX - mx) * (newScale / _scale);
+    _panY = my + (_panY - my) * (newScale / _scale);
+    _scale = newScale;
+    if (_animFrame) cancelAnimationFrame(_animFrame);
+    _animFrame = requestAnimationFrame(renderMap);
+  }, {passive: false});
+
+  // ── Touch (mobile) ──
+  _canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      _isDragging = true;
+      _dragStart = {x: e.touches[0].clientX - _panX, y: e.touches[0].clientY - _panY};
+    }
+    _lastTouches = e.touches;
+  });
+
+  _canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && _isDragging) {
+      _panX = e.touches[0].clientX - _dragStart.x;
+      _panY = e.touches[0].clientY - _dragStart.y;
+    } else if (e.touches.length === 2 && _lastTouches?.length === 2) {
+      // Pinch zoom
+      const d0 = Math.hypot(_lastTouches[0].clientX-_lastTouches[1].clientX, _lastTouches[0].clientY-_lastTouches[1].clientY);
+      const d1 = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      if (d0 > 0) {
+        const factor = d1/d0;
+        const cx = (e.touches[0].clientX+e.touches[1].clientX)/2 - _canvas.getBoundingClientRect().left;
+        const cy = (e.touches[0].clientY+e.touches[1].clientY)/2 - _canvas.getBoundingClientRect().top;
+        const newScale = Math.max(0.12, Math.min(4, _scale * factor));
+        _panX = cx + (_panX-cx)*(newScale/_scale);
+        _panY = cy + (_panY-cy)*(newScale/_scale);
+        _scale = newScale;
+      }
+    }
+    _lastTouches = e.touches;
+    if (_animFrame) cancelAnimationFrame(_animFrame);
+    _animFrame = requestAnimationFrame(renderMap);
+  }, {passive:false});
+
+  _canvas.addEventListener('touchend', () => { _isDragging = false; });
 }
 
 function toggleLayer(cat, btn) {
   btn.classList.toggle('active');
-  if (_activeLayers.has(cat)) {
-    _activeLayers.delete(cat);
-    if (_palMap && _mapLayers[cat]) _palMap.removeLayer(_mapLayers[cat]);
-  } else {
-    _activeLayers.add(cat);
-    if (_palMap && _mapLayers[cat]) _mapLayers[cat].addTo(_palMap);
-  }
+  if (_activeLayers.has(cat)) _activeLayers.delete(cat);
+  else _activeLayers.add(cat);
+  renderMap();
 }
 
-// Ancienne fonction gardée pour compatibilité
+function resetMapView() {
+  if (!_canvas) return;
+  _scale = Math.min(_canvas.width, _canvas.height) / (GX_MAX - GX_MIN) * 0.85;
+  _panX = _canvas.width / 2;
+  _panY = _canvas.height / 2;
+  renderMap();
+}
+
+// Stub pour compatibilité
 function setMapFilter() {}
 function renderMapPOI() {}
 
 
 /* ══════════════════════════════════════════════════
-   CALCULATEUR INVERSÉ — Trouver les parents d'un Pal
+   CALCULATEUR INVERSÉ — Trouver les parents d’un Pal
 ══════════════════════════════════════════════════ */
 
 function initReverseCalc() {
@@ -2326,7 +2628,15 @@ function renderTierList() {
 window._saveAnalysis = null;
 
 function initDashboard() {
+  const analysis = window._saveAnalysis;
+  renderProfileBar(analysis || {capturedNames:new Set(), level:0});
+  renderMissions(analysis);
+  renderRaidGuide(analysis);
   renderDashboard();
+  if (analysis) {
+    renderBaseScore(analysis);
+    renderProgressTimeline(analysis);
+  }
 }
 
 function renderDashboard() {
@@ -2393,6 +2703,7 @@ function renderDashboard() {
   }).filter(g => g.level < 3); // postes à améliorer (< Lv3)
 
   container.innerHTML = `
+    <div id="base-score-panel"></div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
       <button class="btn btn-ghost btn-sm" onclick="exportDashboard()">📤 Exporter Paldeck .txt</button>
     </div>
@@ -2446,27 +2757,35 @@ function renderDashboard() {
              </div>`}
       </div>
 
-      <!-- Lacunes de base -->
+      <!-- Couverture de base -->
       <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1.25rem;box-shadow:var(--sh)">
-        <h3 style="font-family:var(--ff-d);font-size:1rem;margin-bottom:.75rem">🏗️ Postes à améliorer <span style="color:var(--sun);font-size:.75rem">(< Lv3)</span></h3>
-        ${baseGaps.length === 0
-          ? '<p style="font-size:.8rem;color:var(--mint-d);font-weight:700">✓ Tous tes postes sont bien couverts !</p>'
-          : `<div style="display:flex;flex-direction:column;gap:.4rem">
-              ${baseGaps.map(g => {
-                const alternatives = PALS.filter(p => !captured.has(p.name) && (p.work||{})[g.work] >= 3)
-                  .sort((a,b)=>(b.work[g.work]||0)-(a.work[g.work]||0)).slice(0,2);
-                return `<div style="padding:.5rem .7rem;background:var(--paper-d);border-radius:6px;border-left:3px solid var(--coral)">
-                  <div style="font-size:.75rem;font-weight:700">${g.label} — actuellement Lv${g.level || '?'}</div>
-                  ${alternatives.length ? `<div style="font-size:.65rem;color:var(--ink-f);margin-top:.2rem">
-                    💡 Capture : ${alternatives.map(p=>`${palImg(p.name,20)} <strong>${p.name}</strong> (Lv${p.work[g.work]})`).join(', ')}
-                  </div>` : ''}
-                </div>`;
-              }).join('')}
-             </div>`}
+        <h3 style="font-family:var(--ff-d);font-size:1rem;margin-bottom:.75rem">🏗️ Couverture de ta base</h3>
+        <div style="display:flex;flex-direction:column;gap:.4rem">
+          ${Object.entries(BASE_ESSENTIALS).map(([work, label]) => {
+            const best = capturedPals.filter(p=>(p.work||{})[work]).sort((a,b)=>(b.work[work]||0)-(a.work[work]||0))[0];
+            const lv = best ? best.work[work] : 0;
+            const color = lv >= 3 ? 'var(--mint-d)' : lv >= 2 ? 'var(--sun)' : lv >= 1 ? 'var(--coral)' : '#888';
+            const stars = '★'.repeat(lv) + '☆'.repeat(Math.max(0,4-lv));
+            return `<div style="display:flex;align-items:center;gap:.6rem;padding:.35rem .5rem;background:var(--paper-d);border-radius:6px">
+              ${workIconImg(work,16)}
+              <span style="font-size:.75rem;flex:1">${label}</span>
+              ${best ? `${palImg(best.name,22)}` : '<div style="width:22px;height:22px"></div>'}
+              <span style="font-family:var(--ff-m);font-size:.65rem;color:${color}">${stars}</span>
+              <span style="font-size:.65rem;color:${color};font-weight:700">Lv${lv}</span>
+            </div>`;
+          }).join('')}
+        </div>
+        ${baseGaps.length > 0 ? `<div style="margin-top:.75rem;font-size:.72rem;color:var(--coral)">⚠️ ${baseGaps.length} poste${baseGaps.length>1?'s':''} sous Lv3 — <button onclick="navigate('planner')" style="background:none;border:none;color:var(--coral);text-decoration:underline;cursor:pointer;font-size:.72rem">Planificateur →</button></div>` : '<div style="margin-top:.6rem;font-size:.72rem;color:var(--mint-d);font-weight:700">✅ Base bien couverte !</div>'}
       </div>
     </div>
 
-    <!-- Succès proches + Légendaires -->
+    <!-- Timeline de progression -->
+    <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1.25rem;margin-bottom:1.5rem;box-shadow:var(--sh)">
+      <h3 style="font-family:var(--ff-d);font-size:1rem;margin-bottom:.85rem">📈 Ta progression</h3>
+      <div id="dash-timeline"></div>
+    </div>
+
+        <!-- Succès proches + Légendaires -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
       <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1.25rem;box-shadow:var(--sh)">
         <h3 style="font-family:var(--ff-d);font-size:1rem;margin-bottom:.75rem">🏆 Succès presque débloqués</h3>
@@ -2800,7 +3119,7 @@ function buildBreedTree() {
         ${directCombos.map(c => renderComboRow(c.p1, c.p2, c.child, c.note, true)).join('')}
       </div>
       ${level2Html}
-    </div>` : `<div style="padding:.75rem;background:rgba(255,100,50,.1);border-radius:var(--r-sm);border-left:3px solid var(--coral);font-size:.82rem;margin-bottom:1.25rem">Aucun combo fixe — ${target} s'obtient uniquement par calcul Power Rank ou en capturant dans la nature.</div>`}
+    </div>` : `<div style="padding:.75rem;background:rgba(255,100,50,.1);border-radius:var(--r-sm);border-left:3px solid var(--coral);font-size:.82rem;margin-bottom:1.25rem">Aucun combo fixe — ${target} s’obtient uniquement par calcul Power Rank ou en capturant dans la nature.</div>`}
 
     ${sortedMath.length ? `
     <div>
@@ -2812,5 +3131,2044 @@ function buildBreedTree() {
       </div>
       ${sortedMath.length>10?`<div style="font-size:.72rem;color:var(--ink-f);text-align:center;margin-top:.5rem">+${sortedMath.length-10} autres combinaisons — utilise le Calc. Inversé pour tout voir</div>`:''}
     </div>` : ''}`;
+}
+
+
+/* ══════════════════════════════════════════════════
+   SIMULATEUR D'INCUBATION
+   Taux officiels Palworld (dataminés) :
+   - Père  : 24% par passive héritée
+   - Mère  : 20% par passive héritée
+   - Aléa  : 21% chance passive aléatoire
+   - Aucune: reste → 34% (4 slots potentiels par enfant)
+══════════════════════════════════════════════════ */
+
+let _simuTarget = 1;
+
+function initSimulator() {
+  runSimulator();
+}
+
+function setSimuTarget(n, btn) {
+  _simuTarget = n;
+  document.querySelectorAll('[id^="simu-want-"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  runSimulator();
+}
+
+function runSimulator() {
+  const dadS  = Math.min(4, Math.max(0, parseInt(document.getElementById('simu-dad')?.value || 2)));
+  const momS  = Math.min(4, Math.max(0, parseInt(document.getElementById('simu-mom')?.value || 2)));
+  const want  = _simuTarget;
+  const result = document.getElementById('simu-result');
+  if (!result) return;
+
+  // ── Calcul probabiliste ──
+  // Chaque slot de l’enfant peut recevoir :
+  //   P(passive S du père)  = dadS/4 × 0.24 = dadS × 0.06
+  //   P(passive S de la mère) = momS/4 × 0.20 = momS × 0.05
+  //   P(passive S aléatoire)  = 0.21 × (S_dans_pool / total_passives) ≈ 0.21 × 0.30
+  // → probabilité qu'UN slot soit une passive S
+  const pSlotDad  = dadS * 0.24 / 4;
+  const pSlotMom  = momS * 0.20 / 4;
+  const pSlotRand = 0.21 * 0.10; // ~10% des passives aléatoires sont S
+  const pSlot     = Math.min(0.85, pSlotDad + pSlotMom + pSlotRand);
+
+  // Probabilité d'avoir exactement `want` passives S ou plus (distribution binomiale, 4 slots)
+  function binomial(n, k) {
+    if (k < 0 || k > n) return 0;
+    let c = 1;
+    for (let i = 0; i < k; i++) c = c * (n-i) / (i+1);
+    return c;
+  }
+  function pAtLeast(slots, target, p) {
+    let prob = 0;
+    for (let k = target; k <= slots; k++) {
+      prob += binomial(slots, k) * Math.pow(p, k) * Math.pow(1-p, slots-k);
+    }
+    return prob;
+  }
+
+  const pSuccess = pAtLeast(4, want, pSlot);
+
+  // Nombre moyen d'œufs pour 1 succès
+  const eggsFor1    = pSuccess > 0 ? 1 / pSuccess : 9999;
+  // Pour avoir 50%, 80%, 95% de chance d'en avoir au moins un
+  const eggsFor50   = pSuccess > 0 ? Math.ceil(Math.log(0.5)  / Math.log(1 - pSuccess)) : 9999;
+  const eggsFor80   = pSuccess > 0 ? Math.ceil(Math.log(0.2)  / Math.log(1 - pSuccess)) : 9999;
+  const eggsFor95   = pSuccess > 0 ? Math.ceil(Math.log(0.05) / Math.log(1 - pSuccess)) : 9999;
+
+  // Simulation Monte Carlo pour validation (1000 itérations)
+  let successes = 0;
+  const ITER = 2000;
+  for (let i = 0; i < ITER; i++) {
+    let sCount = 0;
+    for (let slot = 0; slot < 4; slot++) {
+      if (Math.random() < pSlot) sCount++;
+    }
+    if (sCount >= want) successes++;
+  }
+  const simPct = Math.round(successes / ITER * 100);
+
+  // Difficulté relative
+  const difficulty = pSuccess > 0.5 ? {label:'Facile', color:'var(--mint-d)', emoji:'😊'}
+    : pSuccess > 0.15 ? {label:'Modéré', color:'var(--sun)', emoji:'😐'}
+    : pSuccess > 0.03 ? {label:'Difficile', color:'var(--coral)', emoji:'😓'}
+    : {label:'Extrême', color:'#c00', emoji:'😱'};
+
+  const fmt = n => n > 9999 ? '∞' : n < 1 ? '<1' : n.toFixed(n < 10 ? 1 : 0);
+
+  result.innerHTML = `
+    <!-- Résumé visuel -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem;margin-bottom:1.5rem">
+      ${[
+        {label:'Probabilité / œuf', val:(pSuccess*100).toFixed(1)+'%', color:'var(--lagoon)', sub:'par tentative'},
+        {label:'Œufs en moyenne',   val:fmt(eggsFor1),                 color:'var(--sun)',    sub:'pour 1 succès'},
+        {label:'50% de chance',     val:eggsFor50,                     color:'var(--mint)',   sub:'œufs nécessaires'},
+        {label:'95% de chance',     val:eggsFor95,                     color:'var(--coral)',  sub:'œufs nécessaires'},
+      ].map(s => `
+        <div style="text-align:center;padding:.85rem .5rem;background:var(--paper-d);
+          border-radius:var(--r-md);border:1.5px solid ${s.color}44">
+          <div style="font-family:var(--ff-d);font-size:1.5rem;font-weight:900;color:${s.color}">${s.val}</div>
+          <div style="font-size:.7rem;font-weight:700;margin:.2rem 0">${s.label}</div>
+          <div style="font-size:.62rem;color:var(--ink-f)">${s.sub}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Difficulté + validation Monte Carlo -->
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.85rem 1rem;
+      background:var(--glass);border:1.5px solid ${difficulty.color};border-radius:var(--r-md);margin-bottom:1.25rem">
+      <span style="font-size:1.75rem">${difficulty.emoji}</span>
+      <div>
+        <div style="font-weight:700;color:${difficulty.color}">${difficulty.label}</div>
+        <div style="font-size:.72rem;color:var(--ink-f)">
+          Simulation Monte Carlo (${ITER} essais) : <strong>${simPct}%</strong> de succès · 
+          Probabilité théorique : <strong>${(pSuccess*100).toFixed(1)}%</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barre de progression probabilité -->
+    <div style="margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.3rem">
+        <span>Probabilité de succès par œuf</span>
+        <span style="font-family:var(--ff-m);font-weight:700">${(pSuccess*100).toFixed(2)}%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${Math.min(100, pSuccess*100*3)}%;background:${difficulty.color}"></div>
+      </div>
+    </div>
+
+    <!-- Tableau de progression -->
+    <div style="margin-bottom:1rem">
+      <div style="font-family:var(--ff-d);font-weight:700;font-size:.88rem;margin-bottom:.6rem">
+        Nombre d'œufs pour atteindre une probabilité cible
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.4rem">
+        ${[[25,eggsFor50],[50,eggsFor50],[75,Math.ceil(Math.log(0.25)/Math.log(1-pSuccess))],[80,eggsFor80],[90,Math.ceil(Math.log(0.10)/Math.log(1-pSuccess))],[95,eggsFor95],[99,Math.ceil(Math.log(0.01)/Math.log(1-pSuccess))]].map(([pct,n]) => `
+          <div style="display:flex;justify-content:space-between;padding:.35rem .6rem;
+            background:var(--paper-d);border-radius:5px;font-size:.75rem">
+            <span style="color:var(--ink-f)">${pct}% de chance</span>
+            <span style="font-family:var(--ff-m);font-weight:700">${n > 9999 ? '∞' : n} œufs</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Conseils -->
+    <div style="padding:.85rem 1rem;background:rgba(0,227,74,.08);border-left:3px solid var(--mint-d);border-radius:var(--r-sm);font-size:.78rem;color:var(--ink-s);line-height:1.6">
+      💡 <strong>Conseils :</strong>
+      Chaque parent avec 4 passives S améliore considérablement les chances.
+      ${want === 4 ? 'Pour 4 passives S, utilise des parents ayant déjà 3-4 passives S et répète l’opération plusieurs générations.' : ''}
+      ${want <= 2 ? 'Avec 2 parents bien optimisés, les 1-2 premières passives S viennent rapidement.' : ''}
+      Gobfin est souvent utilisé pour farmer des passives S rapidement grâce à son spawn abondant.
+    </div>`;
+}
+
+/* ══════════════════════════════════════════════════
+   VUE PAR HABITAT dans le Paldeck
+══════════════════════════════════════════════════ */
+
+const HABITATS = {
+  'Collines ventées':     ['Lamball','Cattiva','Lifmunk','Foxparks','Fuack','Sparkit','Jolthog','Vixy','Rushoar','Mau','Celaray','Flopie','Gumoss','Grizzbolt','Kingpaca','Direhowl'],
+  'Forêts':               ['Tanzee','Lifmunk','Ribbuny','Cinnamoth','Beegarde','Elizabee','Bristla','Robinquill','Verdash','Vaelet','Broncherry','Wumpo'],
+  'Plaines centrales':    ['Cattiva','Rooby','Chikipi','Mozzarina','Caprity','Melpaca','Eikthyrdeer','Nitewing','Galeclaw','Gorirat','Mammorest','Lunaris','Woolipop'],
+  'Plateau du Crépuscule':['Digtoise','Tombat','Foxcicle','Maraith','Kitsun','Wixen','Dinossom','Surfent','Quivern','Vanwyrm'],
+  'Désert (Dunes)':       ['Anubis','Arsox','Leezpunk','Menasting','Dumud','Foxcicle','Reptyro','Loupmoon','Cawgnito'],
+  'Toundra (Glace)':      ['Jolthog Cryst','Mau Cryst','Reindrix','Swee','Sweepa','Cryolinx','Hangyu Cryst','Sibelyx','Whalaska','Frostallion'],
+  'Île Volcanique':       ['Jetragon','Blazamut','Blazehowl','Arsox','Leezpunk Ignis','Ragnahawk','Gobfin Ignis','Kelpsea Ignis','Jormuntide Ignis'],
+  'Île de la Désolation': ['Shadowbeak','Helzephyr','Orserk','Felbat','Maraith','Menasting','Astegon','Cawgnito'],
+  'Sanctuaires':          ['Grizzbolt','Anubis','Shadowbeak','Lyleen','Blazamut','Jormuntide','Suzaku','Relaxaurus'],
+  'Sakurajima':           ['Selyne','Bushi','Blazehowl Noct','Lyleen Noct','Katress','Kitsun','Pyrin'],
+  'Feybreak':             ['Bastigor','Xenolord','Xenogard','Silvegis','Gildane','Celesdir','Braloha','Shroomer','Finsider','Croajiro','Lullu'],
+  'Zones aquatiques':     ['Kelpsea','Fuack','Teafant','Pengullet','Surfent','Azurobe','Jormuntide','Whalaska','Neptilius'],
+};
+
+let _habitatFilter = null;
+
+function initHabitatFilters() {
+  const container = document.getElementById('habitat-filter-chips');
+  if (!container || container.dataset.built) return;
+  container.dataset.built = '1';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'work-filter-btn active';
+  allBtn.textContent = '🌍 Tous';
+  allBtn.onclick = () => { _habitatFilter = null; document.querySelectorAll('#habitat-filter-chips .work-filter-btn').forEach(b=>b.classList.remove('active')); allBtn.classList.add('active'); applyPalFilters(); };
+  container.appendChild(allBtn);
+
+  Object.keys(HABITATS).forEach(hab => {
+    const btn = document.createElement('button');
+    btn.className = 'work-filter-btn';
+    btn.textContent = hab;
+    btn.onclick = () => {
+      _habitatFilter = hab;
+      document.querySelectorAll('#habitat-filter-chips .work-filter-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      applyPalFilters();
+    };
+    container.appendChild(btn);
+  });
+}
+
+
+/* ══════════════════════════════════════════════════
+   ANALYSE AVANCÉE DE SAVE — Passives, Stats, Optimiseur
+══════════════════════════════════════════════════ */
+
+/* ── Table info passives (miroir de save-parser.js pour l'UI) ── */
+const PASSIVE_UI = {
+  'Legend':         {tier:'S', fr:'Légende',           color:'#FFD700'},
+  'Musclehead':     {tier:'S', fr:'Seigneur Âmes',      color:'#FFD700'},
+  'Brave':          {tier:'S', fr:'Courageux',          color:'#FFD700'},
+  'Ferocious':      {tier:'S', fr:'Féroce',             color:'#FFD700'},
+  'Hooligan':       {tier:'S', fr:'Voyou',              color:'#FFD700'},
+  'CrafterMinimum': {tier:'S', fr:'Artisan Sérieux',    color:'#FFD700'},
+  'WorkSlave':      {tier:'S', fr:'Âme de Travailleur', color:'#FFD700'},
+  'Serious':        {tier:'S', fr:'Consciencieux',      color:'#FFD700'},
+  'Lucky':          {tier:'A', fr:'Veinard',            color:'#00E34A'},
+  'Masochist':      {tier:'A', fr:'Masochiste',         color:'#00E34A'},
+  'Coward':         {tier:'A', fr:'Lâche',              color:'#00E34A'},
+  'Daredevil':      {tier:'A', fr:'Téméraire',          color:'#00E34A'},
+  'Swift':          {tier:'B', fr:'Agile',              color:'#4FC3F7'},
+  'Durable':        {tier:'B', fr:'Robuste',            color:'#4FC3F7'},
+  'Conceited':      {tier:'B', fr:'Fier',               color:'#4FC3F7'},
+  'Lazy':           {tier:'C', fr:'Paresseux',          color:'#888'},
+  'Pacifist':       {tier:'C', fr:'Pacifiste',          color:'#888'},
+  'Pessimistic':    {tier:'C', fr:'Pessimiste',         color:'#888'},
+  'Glutton':        {tier:'C', fr:'Glouton',            color:'#888'},
+};
+
+function getPassiveInfo(name) {
+  return PASSIVE_UI[name] || {tier:'?', fr:name, color:'#555'};
+}
+
+function renderPassiveBadge(name) {
+  const info = getPassiveInfo(name);
+  const tierColors = {S:'#FFD700',A:'#00E34A',B:'#4FC3F7',C:'#888','?':'#555'};
+  const color = tierColors[info.tier] || '#555';
+  return `<span style="
+    display:inline-flex;align-items:center;gap:.2rem;
+    font-family:var(--ff-m);font-size:.62rem;font-weight:700;
+    padding:.15rem .45rem;border-radius:4px;
+    background:${color}22;border:1.5px solid ${color};color:${color};
+    white-space:nowrap" title="${name}">
+    ${info.tier} · ${info.fr}
+  </span>`;
+}
+
+/* ── Page Analyse de Save (onglets dans Ma Save) ── */
+function renderSaveResults(capturedIds, filename, analysis) {
+  const total    = PALS.length;
+  const found    = capturedIds.size;
+  const pct      = Math.round((found / total) * 100);
+  const missing  = PALS.filter(p => !capturedIds.has(p.id));
+  const captured = PALS.filter(p =>  capturedIds.has(p.id));
+
+  const methodBadge = analysis.method === 'gvas'
+    ? '<span style="background:var(--mint);color:#fff;font-size:.65rem;padding:.15rem .5rem;border-radius:4px;border:1.5px solid var(--ink);font-weight:800;font-family:var(--ff-m);margin-left:.5rem">GVAS ✓</span>'
+    : '<span style="background:var(--sun);color:var(--ink);font-size:.65rem;padding:.15rem .5rem;border-radius:4px;border:1.5px solid var(--ink);font-weight:800;font-family:var(--ff-m);margin-left:.5rem">SCAN</span>';
+
+  const playerInfo = analysis.playerName ? `· Joueur : <strong>${escHtml(analysis.playerName)}</strong>` : '';
+  const levelInfo  = analysis.level > 0  ? `· Niveau <strong>${analysis.level}</strong>` : '';
+
+  // Stats des palObjects (si GVAS complet)
+  const palObjs = analysis.palObjects || [];
+  const hasRich = palObjs.length > 0;
+
+  document.getElementById('save-status').innerHTML = `
+    <div class="save-success">
+      ✅ <strong>${escHtml(filename)}</strong>${methodBadge}
+      ${playerInfo} ${levelInfo}<br>
+      <strong>${found}</strong> Pal${found>1?'s':''} détecté${found>1?'s':''} sur ${total}
+      ${hasRich ? `· <strong>${palObjs.length}</strong> objets Pal complets extraits` : ''}
+    </div>`;
+
+  // Onglets enrichis si données GVAS riches disponibles
+  const richTabs = hasRich ? `
+    <button class="tab" onclick="showSaveTab('passives',this)">🧬 Passives</button>
+    <button class="tab" onclick="showSaveTab('gems',this)">💎 Perles rares</button>
+    <button class="tab" onclick="showSaveTab('base-opt',this)">🏗️ Optimiseur base</button>
+    <button class="tab" onclick="showSaveTab('breed-rec',this)">💞 Breeding recommandé</button>
+    <button class="tab" onclick="showSaveTab('dupes',this)">♻️ Doublons</button>
+  ` : '';
+
+  document.getElementById('save-results').innerHTML = `
+    <div class="progress-bar-wrap" style="margin-bottom:1.5rem">
+      <div class="progress-label">
+        <span style="font-weight:700;font-size:.95rem">Complétion du Paldeck — ${pct}%</span>
+        <span class="mono" style="color:var(--mint-d);font-weight:700">${found} / ${total}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="save-fill" style="width:0%;transition:width .8s ease-out"></div>
+      </div>
+    </div>
+
+    <div class="tabs" style="margin-bottom:1.5rem;flex-wrap:wrap">
+      <button class="tab active" onclick="showSaveTab('missing',this)">❌ À capturer (${missing.length})</button>
+      <button class="tab"        onclick="showSaveTab('captured',this)">✅ Capturés (${found})</button>
+      ${richTabs}
+    </div>
+
+    <div id="save-tab-missing">${renderPalGrid(missing,'coral','Non capturé')}</div>
+    <div id="save-tab-captured"   style="display:none">${renderPalGrid(captured,'mint','✓ Capturé')}</div>
+    ${hasRich ? `
+    <div id="save-tab-passives"  style="display:none">${renderPassivesTab(palObjs)}</div>
+    <div id="save-tab-gems"      style="display:none">${renderGemsTab(palObjs)}</div>
+    <div id="save-tab-base-opt"  style="display:none">${renderBaseOptTab(palObjs)}</div>
+    <div id="save-tab-breed-rec" style="display:none">${renderBreedRecTab(palObjs)}</div>
+    <div id="save-tab-dupes"     style="display:none">${renderDupesTab(palObjs)}</div>
+    ` : ''}`;
+
+  requestAnimationFrame(() => {
+    document.getElementById('save-fill').style.width = pct + '%';
+  });
+  onSaveAnalyzed(analysis);
+}
+
+function renderPalGrid(pals, colorVar, label) {
+  if (!pals.length) return `<div class="empty-state"><div style="font-size:3rem;margin-bottom:.75rem">🎉</div><div class="empty-title">Aucun Pal dans cette catégorie</div></div>`;
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:.75rem">
+    ${pals.map(p => `
+      <div class="pal-mini" onclick="openModal('${p.id}')" ${colorVar==='coral'?'style="opacity:.65;border-color:var(--coral)"':''}>
+        <div class="pm-hdr">
+          <span class="pm-id mono">№ ${p.id}</span>
+          <div class="pm-els">${p.el.map(e=>`<span class="pm-el" style="background:${EL[e].color}">${EL[e].icon}</span>`).join('')}</div>
+        </div>
+        ${palImg(p.name,44)}
+        <div class="pm-name">${p.name}</div>
+        <div style="margin-top:.3rem;font-size:.65rem;padding:.15rem .4rem;background:rgba(${colorVar==='coral'?'255,61,26':'0,227,74'},.12);border-radius:4px;color:var(--${colorVar});font-weight:700;display:inline-block">${label}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+/* ── Onglet PASSIVES — vue de toutes les passives ── */
+function renderPassivesTab(palObjs) {
+  // Regrouper par Pal
+  const byPal = {};
+  palObjs.forEach(obj => {
+    if (!obj.charId || !obj.passives?.length) return;
+    if (!byPal[obj.charId]) byPal[obj.charId] = [];
+    byPal[obj.charId].push(obj);
+  });
+
+  // Trier : Pals avec passives S en premier
+  const sorted = Object.entries(byPal).sort((a, b) => {
+    const sA = a[1].reduce((n,o)=>n+o.passives.filter(p=>getPassiveInfo(p).tier==='S').length,0);
+    const sB = b[1].reduce((n,o)=>n+o.passives.filter(p=>getPassiveInfo(p).tier==='S').length,0);
+    return sB - sA;
+  });
+
+  if (!sorted.length) return '<p style="color:var(--ink-f)">Aucune passive détectée — essaie avec un fichier Level.sav (GVAS complet).</p>';
+
+  return `
+    <div style="margin-bottom:1rem;font-size:.8rem;color:var(--ink-f)">
+      Passives de <strong>${sorted.length}</strong> espèces de Pals dans ta boîte.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+    ${sorted.map(([name, objs]) => {
+      const palObj = PALS.find(p => p.name === name);
+      // Regrouper par set de passives identique
+      const sets = {};
+      objs.forEach(o => {
+        const key = [...(o.passives||[])].sort().join('|');
+        sets[key] = (sets[key]||0) + 1;
+      });
+
+      return `
+      <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:.85rem 1rem;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem">
+          ${palImg(name, 40)}
+          <div>
+            <strong style="font-family:var(--ff-d)">${name}</strong>
+            <span style="font-size:.68rem;color:var(--ink-f);margin-left:.4rem">${objs.length} exemplaire${objs.length>1?'s':''}</span>
+          </div>
+          ${palObj ? `<button onclick="openModal('${palObj.id}')" class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:.65rem">Fiche</button>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.35rem">
+          ${Object.entries(sets).map(([key, count]) => {
+            const passives = key ? key.split('|') : [];
+            const sCount = passives.filter(p => getPassiveInfo(p).tier === 'S').length;
+            return `<div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding:.3rem .5rem;background:var(--paper-d);border-radius:6px;border-left:3px solid ${sCount>=3?'var(--sun)':sCount>=2?'var(--mint-d)':'var(--line)'}">
+              ${count > 1 ? `<span style="font-family:var(--ff-m);font-size:.62rem;color:var(--ink-f)">×${count}</span>` : ''}
+              ${passives.length ? passives.map(renderPassiveBadge).join('') : '<span style="font-size:.7rem;color:var(--ink-f)">Aucune passive</span>'}
+              ${sCount > 0 ? `<span style="margin-left:auto;font-family:var(--ff-m);font-size:.6rem;color:var(--sun);font-weight:800">${sCount}S</span>` : ''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+    </div>`;
+}
+
+/* ── Onglet PERLES RARES — Pals avec 2+ passives S ── */
+function renderGemsTab(palObjs) {
+  const gems = palObjs.filter(o => {
+    const sCount = (o.passives||[]).filter(p => getPassiveInfo(p).tier === 'S').length;
+    return sCount >= 2;
+  }).sort((a,b) => {
+    const sA = (a.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length;
+    const sB = (b.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length;
+    return sB - sA || b.rank - a.rank;
+  });
+
+  if (!gems.length) return `
+    <div style="text-align:center;padding:2rem;color:var(--ink-f)">
+      <div style="font-size:3rem;margin-bottom:.75rem">💎</div>
+      <div style="font-weight:700">Aucune perle rare détectée</div>
+      <p style="font-size:.82rem">Les perles rares sont des Pals avec 2+ passives S.<br>Continue à farmer et à breeder !</p>
+    </div>`;
+
+  return `
+    <div style="margin-bottom:1rem;font-size:.8rem;color:var(--ink-f)">
+      🏆 <strong>${gems.length}</strong> Pal${gems.length>1?'s':''} avec 2+ passives S dans ta boîte
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem">
+    ${gems.map(obj => {
+      const palObj = PALS.find(p => p.name === obj.charId);
+      const sCount = (obj.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length;
+      const stars = '★'.repeat(obj.rank||0)+'☆'.repeat(4-(obj.rank||0));
+      const borderColor = sCount>=4?'var(--sun)':sCount>=3?'var(--mint-d)':'var(--lagoon)';
+      return `
+      <div style="background:var(--glass);border:2px solid ${borderColor};border-radius:var(--r-md);
+        padding:1rem;box-shadow:var(--sh);position:relative" onclick="${palObj?`openModal('${palObj.id}')`:''}'" style="cursor:${palObj?'pointer':'default'}">
+        ${sCount===4?'<div style="position:absolute;top:.5rem;right:.5rem;font-size:.65rem;background:var(--sun);color:#000;padding:.15rem .45rem;border-radius:4px;font-weight:800;font-family:var(--ff-m)">PARFAIT</div>':''}
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.65rem">
+          ${palImg(obj.charId, 48)}
+          <div>
+            <div style="font-family:var(--ff-d);font-weight:700">${obj.charId}</div>
+            <div style="font-size:.65rem;color:var(--sun)">${stars}</div>
+            <div style="font-size:.62rem;color:var(--ink-f)">
+              ${obj.gender==='F'?'♀':'♂'} · Lv ${obj.level||'?'}
+              ${obj.isAlpha?'· <span style="color:var(--sun)">★ Alpha</span>':''}
+            </div>
+          </div>
+          <div style="margin-left:auto;text-align:center">
+            <div style="font-family:var(--ff-d);font-size:1.8rem;font-weight:900;color:${borderColor}">${sCount}</div>
+            <div style="font-size:.6rem;color:var(--ink-f)">passives S</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+          ${(obj.passives||[]).map(renderPassiveBadge).join('')}
+        </div>
+        ${obj.rankAtk||obj.rankDef||obj.rankHp ? `
+        <div style="margin-top:.5rem;display:flex;gap:.3rem;flex-wrap:wrap">
+          ${obj.rankAtk?`<span style="font-size:.6rem;color:var(--coral);font-weight:700">ATK+${obj.rankAtk*10}%</span>`:''}
+          ${obj.rankDef?`<span style="font-size:.6rem;color:var(--lagoon);font-weight:700">DEF+${obj.rankDef*10}%</span>`:''}
+          ${obj.rankHp?`<span style="font-size:.6rem;color:var(--mint-d);font-weight:700">HP+${obj.rankHp*10}%</span>`:''}
+        </div>` : ''}
+      </div>`;
+    }).join('')}
+    </div>`;
+}
+
+/* ── Onglet OPTIMISEUR BASE ── */
+function renderBaseOptTab(palObjs) {
+  const JOBS_OPT = [
+    {id:'kindling', label:'🔥 Allumage'},    {id:'watering', label:'💧 Arrosage'},
+    {id:'planting', label:'🌱 Plantation'},  {id:'electric', label:'⚡ Énergie'},
+    {id:'handiwork',label:'🔨 Artisanat'},   {id:'gathering',label:'🌿 Collecte'},
+    {id:'lumbering',label:'🪓 Abattage'},    {id:'mining',   label:'⛏️ Minage'},
+    {id:'medicine', label:'💊 Pharmacie'},   {id:'cooling',  label:'❄️ Réfrigération'},
+    {id:'transporting',label:'🚚 Transport'},{id:'farming',  label:'🐄 Élevage'},
+  ];
+
+  return `
+    <div style="margin-bottom:1rem;font-size:.8rem;color:var(--ink-f)">
+      Meilleur Pal pour chaque poste, basé sur tes <strong>${palObjs.length}</strong> Pals capturés et leurs passives.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.75rem">
+    ${JOBS_OPT.map(job => {
+      // Trouver les Pals qui ont ce type de travail parmi les capturés
+      const candidates = palObjs.filter(obj => {
+        const palData = PALS.find(p => p.name === obj.charId);
+        return palData && (palData.work||{})[job.id] > 0;
+      }).map(obj => {
+        const palData = PALS.find(p => p.name === obj.charId);
+        const workLv = palData.work[job.id] || 0;
+        const sCount = (obj.passives||[]).filter(p => getPassiveInfo(p).tier === 'S').length;
+        // Score = workLv × 10 + sPassives × 5 + rank × 2 + isAlpha × 3
+        const score = workLv * 10 + sCount * 5 + (obj.rank||0) * 2 + (obj.isAlpha?3:0);
+        return { ...obj, workLv, sCount, score, palData };
+      }).sort((a,b) => b.score - a.score).slice(0, 3);
+
+      const best = candidates[0];
+
+      return `
+      <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);
+        padding:.85rem 1rem;box-shadow:var(--sh);border-left:3px solid ${best?'var(--mint-d)':'var(--coral)'}">
+        <div style="font-size:.78rem;font-weight:700;margin-bottom:.6rem">${job.label}</div>
+        ${!best ? `<p style="font-size:.75rem;color:var(--coral)">Aucun Pal capturé pour ce poste</p>` : `
+          <div style="display:flex;flex-direction:column;gap:.35rem">
+            ${candidates.map((c, idx) => `
+            <div style="display:flex;align-items:center;gap:.5rem;padding:.3rem .5rem;
+              background:${idx===0?'rgba(0,227,74,.08)':'var(--paper-d)'};border-radius:6px">
+              ${palImg(c.charId, 32)}
+              <div style="flex:1;min-width:0">
+                <div style="font-size:.75rem;font-weight:700">${c.charId}</div>
+                <div style="font-size:.62rem;color:var(--ink-f)">
+                  Lv${c.workLv} · ${c.sCount}S · ★${c.rank||0}${c.isAlpha?' · ⭐Alpha':''}
+                </div>
+              </div>
+              ${idx===0?'<span style="font-size:.6rem;background:var(--mint-d);color:#fff;padding:.1rem .35rem;border-radius:3px;font-weight:800">TOP</span>':''}
+            </div>`).join('')}
+          </div>`}
+      </div>`;
+    }).join('')}
+    </div>`;
+}
+
+/* ── Onglet BREEDING RECOMMANDÉ ── */
+function renderBreedRecTab(palObjs) {
+  // Trouver les meilleurs couples pour transmettre des passives S
+  const withS = palObjs.filter(o => (o.passives||[]).some(p=>getPassiveInfo(p).tier==='S'));
+
+  // Paires de Pals qui peuvent se reproduire ET ont de bonnes passives
+  const pairs = [];
+  const seen = new Set();
+
+  withS.forEach(dad => {
+    withS.forEach(mom => {
+      if (dad === mom || dad.charId === mom.charId) return;
+      const key = [dad.charId, mom.charId].sort().join('×');
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      const dadS = (dad.passives||[]).filter(p=>getPassiveInfo(p).tier==='S');
+      const momS = (mom.passives||[]).filter(p=>getPassiveInfo(p).tier==='S');
+      const combined = new Set([...dadS, ...momS]);
+
+      // Score : passives S combinées uniques
+      if (combined.size >= 2) {
+        pairs.push({ dad, mom, combined, score: combined.size + dadS.length * 0.3 + momS.length * 0.3 });
+      }
+    });
+  });
+
+  pairs.sort((a,b) => b.score - a.score);
+  const top = pairs.slice(0, 12);
+
+  if (!top.length) return `
+    <div style="text-align:center;padding:2rem;color:var(--ink-f)">
+      <div style="font-size:3rem;margin-bottom:.75rem">💞</div>
+      <div style="font-weight:700">Pas assez de Pals avec passives S</div>
+      <p style="font-size:.82rem">Il faut au moins 2 Pals avec des passives S pour des recommandations de breeding.</p>
+    </div>`;
+
+  return `
+    <div style="margin-bottom:1rem;font-size:.8rem;color:var(--ink-f)">
+      💞 <strong>${top.length}</strong> meilleurs couples identifiés pour maximiser les passives S sur l'enfant.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.65rem">
+    ${top.map(pair => {
+      const childName = BREEDING_COMBOS.find(c=>
+        (c.p1===pair.dad.charId&&c.p2===pair.mom.charId)||(c.p1===pair.mom.charId&&c.p2===pair.dad.charId)
+      )?.child || null;
+      const childPal = childName ? PALS.find(p=>p.name===childName) : null;
+
+      return `
+      <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:.85rem 1rem;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
+          <div style="display:flex;align-items:center;gap:.3rem">
+            ${palImg(pair.dad.charId,36)}
+            <div>
+              <div style="font-size:.75rem;font-weight:700">${pair.dad.charId} ♂</div>
+              <div style="display:flex;gap:.2rem;flex-wrap:wrap">${(pair.dad.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').map(renderPassiveBadge).join('')}</div>
+            </div>
+          </div>
+          <span style="color:var(--ink-f);font-size:1.2rem">×</span>
+          <div style="display:flex;align-items:center;gap:.3rem">
+            ${palImg(pair.mom.charId,36)}
+            <div>
+              <div style="font-size:.75rem;font-weight:700">${pair.mom.charId} ♀</div>
+              <div style="display:flex;gap:.2rem;flex-wrap:wrap">${(pair.mom.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').map(renderPassiveBadge).join('')}</div>
+            </div>
+          </div>
+          ${childPal ? `
+          <span style="color:var(--ink-f)">→</span>
+          <div style="display:flex;align-items:center;gap:.3rem">
+            ${palImg(childName,36)}
+            <span style="font-size:.72rem;font-weight:700;color:var(--mint-d)">${childName}</span>
+          </div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
+          <span style="font-size:.68rem;color:var(--ink-f)">Passives S transmissibles :</span>
+          ${[...pair.combined].map(renderPassiveBadge).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+    </div>`;
+}
+
+/* ── Onglet DOUBLONS ── */
+function renderDupesTab(palObjs) {
+  const byName = {};
+  palObjs.forEach(obj => {
+    if (!obj.charId) return;
+    if (!byName[obj.charId]) byName[obj.charId] = [];
+    byName[obj.charId].push(obj);
+  });
+
+  const dupes = Object.entries(byName).filter(([,objs]) => objs.length >= 2)
+    .sort((a,b) => b[1].length - a[1].length);
+
+  if (!dupes.length) return '<p style="color:var(--ink-f);padding:1rem">Aucun doublon détecté.</p>';
+
+  return `
+    <div style="margin-bottom:1rem;font-size:.8rem;color:var(--ink-f)">
+      ♻️ <strong>${dupes.length}</strong> espèces en doublon. Fusionne les moins bons au <strong>Condenseur d’essence</strong> pour monter les étoiles des meilleurs.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.65rem">
+    ${dupes.map(([name, objs]) => {
+      const palObj = PALS.find(p=>p.name===name);
+      // Trier : meilleur en premier (passives S + rang)
+      const sorted = [...objs].sort((a,b) => {
+        const sA = (a.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length;
+        const sB = (b.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length;
+        return sB-sA || b.rank-a.rank;
+      });
+      const best = sorted[0];
+      const fodder = sorted.slice(1);
+      const bestSCount = (best.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length;
+
+      return `
+      <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:.85rem 1rem;box-shadow:var(--sh)">
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.65rem">
+          ${palImg(name,44)}
+          <div>
+            <span style="font-family:var(--ff-d);font-weight:700">${name}</span>
+            <span style="font-size:.68rem;color:var(--ink-f);margin-left:.4rem">${objs.length} exemplaires</span>
+          </div>
+          ${palObj?`<button onclick="openModal('${palObj.id}')" class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:.65rem">Fiche</button>`:''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+          <div>
+            <div style="font-size:.65rem;font-weight:800;color:var(--mint-d);margin-bottom:.3rem">✅ GARDER</div>
+            <div style="padding:.4rem .6rem;background:rgba(0,227,74,.08);border:1px solid var(--mint-d);border-radius:6px">
+              <div style="font-size:.68rem">★${best.rank||0} · ${best.gender==='F'?'♀':'♂'} · Lv${best.level||'?'}${best.isAlpha?' · ⭐':''}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:.2rem;margin-top:.2rem">
+                ${(best.passives||[]).map(renderPassiveBadge).join('')||'<span style="font-size:.65rem;color:var(--ink-f)">Aucune passive</span>'}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.65rem;font-weight:800;color:var(--coral);margin-bottom:.3rem">♻️ FUSIONNER (${fodder.length})</div>
+            <div style="display:flex;flex-direction:column;gap:.2rem">
+              ${fodder.slice(0,3).map(obj=>`
+              <div style="padding:.3rem .5rem;background:var(--paper-d);border-radius:5px;font-size:.65rem">
+                ★${obj.rank||0} · ${(obj.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length}S passives
+              </div>`).join('')}
+              ${fodder.length>3?`<div style="font-size:.62rem;color:var(--ink-f)">+${fodder.length-3} autres</div>`:''}
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:.5rem;font-size:.7rem;color:var(--sun)">
+          💡 Fusionner ${fodder.length} exemplaire${fodder.length>1?'s':''} → +${Math.min(4,fodder.length)} étoile${fodder.length>1?'s':''} au condenseur
+        </div>
+      </div>`;
+    }).join('')}
+    </div>`;
+}
+
+
+/* ── Timeline de progression du joueur ── */
+function renderProgressTimeline(analysis) {
+  const tl = document.getElementById('dash-timeline');
+  if (!tl) return;
+
+  const lv  = analysis.level || 0;
+  const cap = analysis.capturedNames?.size || 0;
+
+  const phase = lv < 20 ? 'early' : lv < 40 ? 'mid' : lv < 55 ? 'late' : 'endgame';
+
+  const phases = [
+    {id:'early',   label:'Niv 1-20',  emoji:'🌱', done: lv >= 20},
+    {id:'mid',     label:'Niv 20-40', emoji:'⚔️', done: lv >= 40},
+    {id:'late',    label:'Niv 40-55', emoji:'🔥', done: lv >= 55},
+    {id:'endgame', label:'Niv 55+',   emoji:'👑', done: lv >= 60},
+  ];
+
+  const PRIOS = {
+    early:   ['Capture 10 Pals différents','Construis ta première Fonderie','Débloquer Nitewing (Lv15)','Battre la Tour de Rayne'],
+    mid:     ['Construire le Ranch + Gâteau d\u2019élevage','Obtenir Anubis par breeding','Battre les 5 Tours','Débloquer Giga Sphère'],
+    late:    ['Capturer les 4 Légendaires','Lancer les raids Bellanoir','Monter 4 passives S sur tes meilleurs Pals','Farm Oil Rig Lv55'],
+    endgame: ['Raid Xenolord (Feybreak)','Capturer Neptilius (Arrosage Lv4)','PvP Home Sweet Home','Compléter le Paldeck 100%'],
+  };
+
+  const current = phases.find(p => !p.done) || phases[phases.length-1];
+  const prios = PRIOS[phase] || PRIOS.endgame;
+
+  const phaseHtml = phases.map((p, i) => {
+    const color = p.done ? 'var(--mint-d)' : (p.id === phase ? 'var(--sun)' : 'var(--paper-d)');
+    const txt   = p.done ? '#fff' : (p.id === phase ? '#000' : 'var(--ink-f)');
+    return `<div style="display:flex;align-items:center;gap:.3rem;padding:.3rem .7rem;border-radius:20px;
+      font-size:.72rem;font-weight:700;background:${color};color:${txt}">
+      ${p.emoji} ${p.label} ${p.done ? '✓' : ''}
+    </div>${i < phases.length-1 ? '<span style="color:var(--line);font-size:.8rem">→</span>' : ''}`;
+  }).join('');
+
+  const prioHtml = prios.map((p, i) =>
+    `<div style="display:flex;align-items:flex-start;gap:.5rem;font-size:.78rem;margin-bottom:.3rem">
+      <span style="font-family:var(--ff-m);font-weight:800;color:var(--sun);flex-shrink:0">${i+1}.</span>${p}
+    </div>`).join('');
+
+  tl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.85rem">
+      ${phaseHtml}
+    </div>
+    <div style="font-weight:700;font-size:.82rem;margin-bottom:.5rem">
+      🎯 Priorités — Phase ${current.emoji} ${current.label}
+    </div>
+    ${prioHtml}`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   JOURNAL DE BORD — Système complet de personnalisation
+   localStorage keys :
+     dresseur_profile   → profil joueur
+     dresseur_sessions  → historique des sessions
+     dresseur_objectives→ objectifs personnalisés
+══════════════════════════════════════════════════════════════ */
+
+/* ── Titres automatiques selon la progression ── */
+const PLAYER_TITLES = [
+  {minLv:0,  minCap:0,   title:'Nouveau Dresseur',     emoji:'🥚'},
+  {minLv:10, minCap:10,  title:'Apprenti Dresseur',    emoji:'🌱'},
+  {minLv:20, minCap:25,  title:'Dresseur Confirmé',    emoji:'⚔️'},
+  {minLv:30, minCap:50,  title:'Chasseur de Pals',     emoji:'🎯'},
+  {minLv:40, minCap:80,  title:'Expert Dresseur',      emoji:'🔥'},
+  {minLv:50, minCap:100, title:'Maître Dresseur',      emoji:'👑'},
+  {minLv:55, minCap:130, title:'Légende de Palpagos',  emoji:'💎'},
+  {minLv:60, minCap:160, title:'Dresseur Légendaire',  emoji:'⭐'},
+];
+
+function getPlayerTitle(level, captured) {
+  let best = PLAYER_TITLES[0];
+  for (const t of PLAYER_TITLES) {
+    if (level >= t.minLv && captured >= t.minCap) best = t;
+  }
+  return best;
+}
+
+/* ── Gestion du profil ── */
+function loadProfile() {
+  try { return JSON.parse(localStorage.getItem('dresseur_profile') || 'null'); }
+  catch { return null; }
+}
+function saveProfile(data) {
+  localStorage.setItem('dresseur_profile', JSON.stringify(data));
+}
+
+function initProfile(analysis) {
+  let profile = loadProfile();
+  const now = new Date().toISOString();
+  if (!profile) {
+    profile = {
+      name: analysis.playerName || 'Dresseur',
+      createdAt: now,
+      lastSeen: now,
+      totalImports: 1,
+      bestLevel: analysis.level || 0,
+      bestCaptured: analysis.capturedNames?.size || 0,
+    };
+  } else {
+    profile.lastSeen = now;
+    profile.totalImports = (profile.totalImports || 0) + 1;
+    if ((analysis.level || 0) > (profile.bestLevel || 0)) profile.bestLevel = analysis.level;
+    if ((analysis.capturedNames?.size || 0) > (profile.bestCaptured || 0)) profile.bestCaptured = analysis.capturedNames.size;
+    if (analysis.playerName && !profile.name) profile.name = analysis.playerName;
+  }
+  saveProfile(profile);
+  return profile;
+}
+
+/* ── Rendu de la barre de profil ── */
+function renderProfileBar(analysis) {
+  const bar = document.getElementById('player-profile-bar');
+  if (!bar) return;
+  const profile = loadProfile() || { name: analysis?.playerName || 'Dresseur', totalImports: 0 };
+  const lv   = analysis?.level || 0;
+  const cap  = analysis?.capturedNames?.size || 0;
+  const t    = getPlayerTitle(lv, cap);
+  const days = profile.createdAt
+    ? Math.floor((Date.now() - new Date(profile.createdAt)) / 86400000)
+    : 0;
+  const lastSeen = profile.lastSeen
+    ? new Date(profile.lastSeen).toLocaleDateString('fr-FR', {day:'numeric', month:'long'})
+    : 'Jamais';
+
+  bar.innerHTML = `
+    <div style="background:linear-gradient(135deg,var(--paper-d),var(--glass));border:var(--bdr);
+      border-radius:var(--r-lg);padding:1.25rem 1.5rem;box-shadow:var(--sh);
+      display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap">
+
+      <!-- Avatar / titre -->
+      <div style="display:flex;align-items:center;gap:.85rem;flex-shrink:0">
+        <div style="width:56px;height:56px;border-radius:50%;
+          background:linear-gradient(135deg,var(--sun),var(--coral));
+          display:flex;align-items:center;justify-content:center;
+          font-size:1.8rem;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink)">
+          ${t.emoji}
+        </div>
+        <div>
+          <div style="font-family:var(--ff-d);font-size:1.15rem;font-weight:700">
+            ${escHtml(profile.name || 'Dresseur')}
+            <button onclick="editProfileName()" style="background:none;border:none;cursor:pointer;font-size:.7rem;color:var(--ink-f);margin-left:.3rem" title="Modifier le nom">✏️</button>
+          </div>
+          <div style="font-family:var(--ff-m);font-size:.72rem;color:var(--sun);font-weight:700">${t.title}</div>
+          <div style="font-size:.65rem;color:var(--ink-f);margin-top:.1rem">
+            ${days > 0 ? `Aventurier depuis ${days} jour${days>1?'s':''} ·` : ''} ${profile.totalImports || 0} import${(profile.totalImports||0)>1?'s':''} de save
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats rapides -->
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;flex:1">
+        ${lv > 0 ? `<div style="text-align:center;padding:.5rem .85rem;background:var(--paper);border-radius:var(--r-sm);border:var(--bdr)">
+          <div style="font-family:var(--ff-d);font-size:1.3rem;font-weight:900;color:var(--sun)">${lv}</div>
+          <div style="font-size:.62rem;color:var(--ink-f)">Niveau</div>
+        </div>` : ''}
+        ${cap > 0 ? `<div style="text-align:center;padding:.5rem .85rem;background:var(--paper);border-radius:var(--r-sm);border:var(--bdr)">
+          <div style="font-family:var(--ff-d);font-size:1.3rem;font-weight:900;color:var(--mint-d)">${cap}</div>
+          <div style="font-size:.62rem;color:var(--ink-f)">Pals</div>
+        </div>` : ''}
+        <div style="text-align:center;padding:.5rem .85rem;background:var(--paper);border-radius:var(--r-sm);border:var(--bdr)">
+          <div style="font-family:var(--ff-d);font-size:1.3rem;font-weight:900;color:var(--lagoon)">${Math.round(cap/PALS.length*100)||0}%</div>
+          <div style="font-size:.62rem;color:var(--ink-f)">Paldeck</div>
+        </div>
+      </div>
+
+      <!-- Actions rapides -->
+      <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="navigate('saveimport')" style="font-size:.72rem">💾 Importer save</button>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('journal')"    style="font-size:.72rem">📔 Journal</button>
+      </div>
+    </div>`;
+}
+
+function editProfileName() {
+  const profile = loadProfile() || {};
+  const newName = prompt('Ton nom de dresseur :', profile.name || '');
+  if (newName !== null && newName.trim()) {
+    profile.name = newName.trim().slice(0, 30);
+    saveProfile(profile);
+    renderProfileBar(window._saveAnalysis || {capturedNames:new Set(), level:0});
+    showToast('✅ Nom mis à jour !', 'success');
+  }
+}
+
+/* ── Missions dynamiques ── */
+function generateMissions(analysis) {
+  const missions = [];
+  const captured    = analysis?.capturedNames || new Set();
+  const palObjs     = analysis?.palObjects || [];
+  const lv          = analysis?.level || 0;
+  const cap         = captured.size;
+  const capturedPals = PALS.filter(p => captured.has(p.name));
+
+  // ── Missions de capture ──
+  const captureThresholds = [
+    {n:10, ach:'Newbie Pal Tamer'}, {n:20, ach:'Intermediate'}, {n:50, ach:'Skilled'},
+    {n:90, ach:'Seasoned'}, {n:140, ach:'Exceptional'},
+  ];
+  const nextThreshold = captureThresholds.find(t => cap < t.n);
+  if (nextThreshold) {
+    const remaining = nextThreshold.n - cap;
+    missions.push({
+      type:'capture', priority: remaining <= 5 ? 'urgent' : 'normal',
+      icon:'📖', title:`Capture ${remaining} Pal${remaining>1?'s':''} de plus`,
+      desc:`Il te manque ${remaining} Pal${remaining>1?'s':''} pour atteindre ${nextThreshold.n} et débloquer "${nextThreshold.ach}"`,
+      action:"navigate('pals')", actionLabel:'Voir le Paldeck',
+      progress: Math.round(cap/nextThreshold.n*100), progressMax: 100,
+    });
+  }
+
+  // ── Légendaires manquants ──
+  const legendMissing = ['Jetragon','Frostallion','Paladius','Necromus','Neptilius']
+    .filter(n => !captured.has(n));
+  if (legendMissing.length && lv >= 40) {
+    missions.push({
+      type:'legendary', priority: lv >= 55 ? 'urgent' : 'normal',
+      icon:'💎', title:`${legendMissing.length} Légendaire${legendMissing.length>1?'s':''} à capturer`,
+      desc:`Manquants : ${legendMissing.join(', ')}. ${lv < 55 ? 'Atteins le niveau 55 avant de te lancer.' : 'Tu as le niveau requis — fonce !'}`,
+      action:"navigate('guides');setTimeout(()=>setGuideTab('legendaires'),200)", actionLabel:'Voir les guides',
+      pals: legendMissing.slice(0,3),
+    });
+  }
+
+  // ── Breeding disponibles non exploités ──
+  const availCombos = BREEDING_COMBOS.filter(c =>
+    captured.has(c.p1) && captured.has(c.p2) && !captured.has(c.child)
+  );
+  if (availCombos.length) {
+    const best = availCombos[0];
+    missions.push({
+      type:'breeding', priority:'normal',
+      icon:'💞', title:`${availCombos.length} combo${availCombos.length>1?'s':''} de breeding disponible${availCombos.length>1?'s':''}`,
+      desc:`Tu peux déjà obtenir ${best.child} en combinant ${best.p1} × ${best.p2} sans rien capturer de plus.`,
+      action:"navigate('breeding');setTimeout(()=>setBreedTab('calculateur'),200)", actionLabel:'Calculateur breeding',
+      pals:[best.p1, best.p2, best.child],
+    });
+  }
+
+  // ── Lacunes de base ──
+  const weakJobs = ['kindling','watering','electric','mining','handiwork'].filter(job => {
+    const best = capturedPals.filter(p=>(p.work||{})[job]).sort((a,b)=>(b.work[job]||0)-(a.work[job]||0))[0];
+    return !best || best.work[job] < 2;
+  });
+  if (weakJobs.length) {
+    const jobLabels = {kindling:'Allumage', watering:'Arrosage', electric:'Énergie', mining:'Minage', handiwork:'Artisanat'};
+    const topJob = weakJobs[0];
+    const topPalNeeded = PALS.filter(p => (p.work||{})[topJob] >= 3 && !captured.has(p.name))
+      .sort((a,b)=>(b.work[topJob]||0)-(a.work[topJob]||0))[0];
+    missions.push({
+      type:'base', priority: weakJobs.length >= 3 ? 'urgent' : 'normal',
+      icon:'🏗️', title:`${weakJobs.length} poste${weakJobs.length>1?'s':''} de base sous-optimisé${weakJobs.length>1?'s':''}`,
+      desc:`Ton poste "${jobLabels[topJob]||topJob}" est faible.${topPalNeeded ? ` Capture ${topPalNeeded.name} pour l'améliorer.` : ''}`,
+      action:"navigate('planner')", actionLabel:'Planificateur de base',
+      pals: topPalNeeded ? [topPalNeeded.name] : [],
+    });
+  }
+
+  // ── Tours non battues ──
+  if (lv >= 15 && lv < 50) {
+    const towerPals = ['Grizzbolt','Lyleen','Orserk','Faleris','Shadowbeak'];
+    const notDefeated = towerPals.filter(p => !captured.has(p));
+    if (notDefeated.length) {
+      missions.push({
+        type:'tower', priority:'normal',
+        icon:'🗼', title:`${notDefeated.length} Tour${notDefeated.length>1?'s':''} probablement non vaincue${notDefeated.length>1?'s':''}`,
+        desc:`Les boss de tours (${notDefeated.slice(0,2).join(', ')}…) ne sont pas dans ta boîte. Bats les tours pour débloquer les expéditions.`,
+        action:"navigate('guides');setTimeout(()=>setGuideTab('tours'),200)", actionLabel:'Guide des tours',
+        pals: notDefeated.slice(0,2),
+      });
+    }
+  }
+
+  // ── Doublons à fusionner ──
+  if (palObjs.length > 0) {
+    const byName = {};
+    palObjs.forEach(o => { if(o.charId) byName[o.charId]=(byName[o.charId]||0)+1; });
+    const dupeCount = Object.values(byName).filter(n=>n>=4).length;
+    if (dupeCount > 0) {
+      missions.push({
+        type:'condenser', priority:'normal',
+        icon:'✨', title:`${dupeCount} espèce${dupeCount>1?'s':''} prête${dupeCount>1?'s':''} pour le Condenseur`,
+        desc:`Tu as 4+ exemplaires du même Pal — fusionne-les pour obtenir des étoiles et augmenter leurs stats de 20%.`,
+        action:"navigate('saveimport');setTimeout(()=>showSaveTab('dupes',document.querySelector('.tab')),300)", actionLabel:'Voir les doublons',
+      });
+    }
+  }
+
+  // ── Passives S à améliorer ──
+  if (palObjs.length > 0 && lv >= 40) {
+    const poorPals = palObjs.filter(o => {
+      const sCount = (o.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length;
+      return sCount === 0;
+    });
+    if (poorPals.length > palObjs.length * 0.7) {
+      missions.push({
+        type:'breeding', priority:'normal',
+        icon:'🧬', title:'Améliore les passives de tes Pals',
+        desc:`${poorPals.length} de tes Pals n'ont aucune passive S. Commence par farmer Legend + Musclehead sur Gobfin (spawn abondant).`,
+        action:"navigate('breeding');setTimeout(()=>setBreedTab('simu'),200)", actionLabel:'Simulateur breeding',
+      });
+    }
+  }
+
+  // ── Mission niveau ──
+  const nextMilestone = [20,30,40,50,55,60,65].find(m => lv < m);
+  if (nextMilestone && lv > 0) {
+    missions.push({
+      type:'level', priority: (nextMilestone - lv) <= 3 ? 'urgent' : 'low',
+      icon:'⬆️', title:`Atteindre le niveau ${nextMilestone}`,
+      desc:`Il te manque ${nextMilestone - lv} niveau${nextMilestone-lv>1?'x':''}. ${nextMilestone === 20 ? 'Priorité : donjons + captures en masse.' : nextMilestone <= 40 ? 'Fais les donjons et bats les Tours.' : 'Farm les boss Alpha et explore les nouvelles zones.'}`,
+      progress: lv, progressMax: nextMilestone,
+    });
+  }
+
+  // Trier : urgent d'abord, puis par type
+  const order = {urgent:0, normal:1, low:2};
+  return missions.sort((a,b) => (order[a.priority]||1) - (order[b.priority]||1));
+}
+
+function renderMissions(analysis) {
+  const panel = document.getElementById('missions-panel');
+  if (!panel) return;
+
+  if (!analysis || !analysis.capturedNames?.size) {
+    panel.innerHTML = `
+      <div style="background:rgba(255,208,0,.08);border:1.5px solid var(--sun);border-radius:var(--r-md);
+        padding:1rem 1.25rem;display:flex;align-items:center;gap:.85rem">
+        <span style="font-size:1.75rem">💾</span>
+        <div>
+          <div style="font-weight:700;font-size:.9rem">Importe ta sauvegarde pour voir tes missions personnalisées</div>
+          <div style="font-size:.78rem;color:var(--ink-f);margin-top:.2rem">Le journal de bord analyse ton état actuel et génère des recommandations sur mesure.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="navigate('saveimport')" style="margin-left:auto;flex-shrink:0">💾 Importer</button>
+      </div>`;
+    return;
+  }
+
+  const missions = generateMissions(analysis);
+  if (!missions.length) {
+    panel.innerHTML = `<div style="color:var(--mint-d);font-weight:700;padding:.75rem">✅ Aucune mission urgente — tu gères parfaitement !</div>`;
+    return;
+  }
+
+  const priorityStyle = {
+    urgent: 'border-color:var(--coral);background:rgba(255,61,26,.06)',
+    normal: '',
+    low:    'opacity:.85',
+  };
+  const priorityBadge = {
+    urgent: '<span style="font-family:var(--ff-m);font-size:.58rem;background:var(--coral);color:#fff;padding:.1rem .4rem;border-radius:3px;font-weight:800;vertical-align:middle">URGENT</span>',
+    normal: '', low: '',
+  };
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;flex-wrap:wrap;gap:.5rem">
+      <h3 style="font-family:var(--ff-d);font-size:1rem">🎯 Tes missions (${missions.length})</h3>
+      <button onclick="renderMissions(window._saveAnalysis)" class="btn btn-ghost btn-sm" style="font-size:.68rem">🔄 Actualiser</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:.65rem">
+    ${missions.map(m => `
+      <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);
+        padding:.85rem 1rem;box-shadow:var(--sh);${priorityStyle[m.priority]||''}">
+        <div style="display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.5rem">
+          <span style="font-size:1.3rem;flex-shrink:0">${m.icon}</span>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:.85rem">${m.title} ${priorityBadge[m.priority]||''}</div>
+            <div style="font-size:.75rem;color:var(--ink-s);line-height:1.5;margin-top:.2rem">${m.desc}</div>
+          </div>
+        </div>
+        ${m.pals?.length ? `<div style="display:flex;gap:.3rem;margin-bottom:.5rem;flex-wrap:wrap">
+          ${m.pals.map(n=>palImg(n,28)).join('')}
+        </div>` : ''}
+        ${m.progress !== undefined ? `
+        <div style="margin-bottom:.5rem">
+          <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--ink-f);margin-bottom:.2rem">
+            <span>Progression</span><span>${m.progress} / ${m.progressMax}</span>
+          </div>
+          <div class="progress-track" style="height:4px">
+            <div class="progress-fill" style="width:${Math.round(m.progress/m.progressMax*100)}%;height:100%"></div>
+          </div>
+        </div>` : ''}
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.25rem;flex-wrap:wrap">
+          ${m.action ? `<button onclick="${m.action}" class="btn btn-ghost btn-sm" style="font-size:.68rem">${m.actionLabel} →</button>` : ''}
+          <button onclick="pinMission('${m.type}_${m.title.slice(0,15).replace(/[^a-zA-Z0-9]/g,'_')}')" class="btn btn-ghost btn-sm" style="font-size:.62rem;opacity:.6" title="Épingler dans le journal">📌</button>
+        </div>
+      </div>`).join('')}
+    </div>`;
+}
+
+/* ── Score de puissance de base ── */
+function computeBaseScore(analysis) {
+  const capturedPals = PALS.filter(p => analysis?.capturedNames?.has(p.name));
+  const palObjs      = analysis?.palObjects || [];
+
+  const JOBS = ['kindling','watering','planting','electric','handiwork','gathering','lumbering','mining','medicine','cooling'];
+  let total = 0, max = JOBS.length * 100;
+
+  JOBS.forEach(job => {
+    const best = capturedPals.filter(p=>(p.work||{})[job]).sort((a,b)=>(b.work[job]||0)-(a.work[job]||0))[0];
+    const lv = best?.work?.[job] || 0;
+    // Score sur 100 = niveau × 25 (Lv4 = 100)
+    total += lv * 25;
+  });
+
+  const baseScore = Math.round(total / max * 100);
+
+  // Score de passives
+  const palCount   = palObjs.length || 1;
+  const avgSpassiv = palObjs.reduce((s,o)=>(s+(o.passives||[]).filter(p=>getPassiveInfo(p).tier==='S').length),0) / palCount;
+  const passiveScore = Math.min(100, Math.round(avgSpassiv * 25));
+
+  // Score Paldeck
+  const paldeckScore = Math.round((analysis?.capturedNames?.size || 0) / PALS.length * 100);
+
+  return {baseScore, passiveScore, paldeckScore, total: Math.round((baseScore+passiveScore+paldeckScore)/3)};
+}
+
+function renderBaseScore(analysis) {
+  const existing = document.getElementById('base-score-panel');
+  if (!existing) return;
+  if (!analysis?.capturedNames?.size) { existing.innerHTML=''; return; }
+
+  const {baseScore, passiveScore, paldeckScore, total} = computeBaseScore(analysis);
+  const scoreColor = total >= 70 ? 'var(--mint-d)' : total >= 40 ? 'var(--sun)' : 'var(--coral)';
+  const scoreLabel = total >= 70 ? 'Excellent' : total >= 40 ? 'Correct' : 'À améliorer';
+
+  existing.innerHTML = `
+    <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1.1rem 1.25rem;box-shadow:var(--sh);margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div style="text-align:center;flex-shrink:0">
+          <div style="font-family:var(--ff-d);font-size:2.5rem;font-weight:900;color:${scoreColor};line-height:1">${total}</div>
+          <div style="font-size:.68rem;font-family:var(--ff-m);color:${scoreColor};font-weight:800">${scoreLabel}</div>
+          <div style="font-size:.6rem;color:var(--ink-f)">Score global</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:.4rem">
+          ${[['🏗️ Base',baseScore,'var(--lagoon)'],['🧬 Passives',passiveScore,'var(--sun)'],['📖 Paldeck',paldeckScore,'var(--mint-d)']].map(([lbl,sc,col])=>`
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:.15rem">
+              <span>${lbl}</span><span style="font-weight:700;color:${col}">${sc}/100</span>
+            </div>
+            <div class="progress-track" style="height:5px">
+              <div class="progress-fill" style="width:${sc}%;height:100%;background:${col}"></div>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── Journal de sessions ── */
+function loadSessions() {
+  try { return JSON.parse(localStorage.getItem('dresseur_sessions') || '[]'); }
+  catch { return []; }
+}
+function saveSessions(sessions) {
+  // Garder les 50 dernières entrées
+  const trimmed = sessions.slice(-50);
+  localStorage.setItem('dresseur_sessions', JSON.stringify(trimmed));
+}
+
+function addJournalEntry() {
+  const text = document.getElementById('journal-new-text')?.value?.trim();
+  const mood = document.getElementById('journal-mood')?.value || '📝';
+  if (!text) { showToast('⚠️ Écris quelque chose d\u2019abord !', 'warning'); return; }
+
+  const sessions = loadSessions();
+  const analysis = window._saveAnalysis;
+
+  const entry = {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    mood,
+    text,
+    level: analysis?.level || 0,
+    captured: analysis?.capturedNames?.size || 0,
+    snapshot: {
+      palNames: analysis ? [...analysis.capturedNames].slice(-5) : [],
+    },
+  };
+
+  sessions.push(entry);
+  saveSessions(sessions);
+
+  document.getElementById('journal-new-text').value = '';
+  showToast('📔 Entrée ajoutée au journal !', 'success');
+  renderJournalHistory();
+
+  // Détecter et noter les nouvelles captures vs session précédente
+  autoDetectSessionChanges(entry, sessions);
+}
+
+function autoDetectSessionChanges(newEntry, sessions) {
+  if (sessions.length < 2) return;
+  const prev = sessions[sessions.length - 2];
+  if (!prev) return;
+
+  const newCap = newEntry.captured - (prev.captured || 0);
+  const newLv  = newEntry.level - (prev.level || 0);
+
+  if (newCap > 0 || newLv > 0) {
+    const hint = document.getElementById('journal-autosave-hint');
+    if (hint) {
+      hint.textContent = `Depuis ta dernière entrée : ${newLv>0?`+${newLv} niv `:''} ${newCap>0?`+${newCap} Pals`:''}`;
+      hint.style.color = 'var(--mint-d)';
+    }
+  }
+}
+
+function initJournal() {
+  renderJournalHistory();
+  // Afficher les changements depuis la dernière session si save importée
+  if (window._saveAnalysis) {
+    const hint = document.getElementById('journal-autosave-hint');
+    if (hint) {
+      const sessions = loadSessions();
+      if (sessions.length > 0) {
+        const last = sessions[sessions.length-1];
+        const newCap = (window._saveAnalysis.capturedNames?.size||0) - (last.captured||0);
+        const newLv  = (window._saveAnalysis.level||0) - (last.level||0);
+        if (newCap > 0 || newLv > 0) {
+          hint.textContent = `Depuis ta dernière note : ${newLv>0?`+${newLv} niv `:''}${newCap>0?`+${newCap} Pals`:''}`;
+          hint.style.color = 'var(--mint-d)';
+        }
+      }
+    }
+  }
+}
+
+function renderJournalHistory() {
+  const container = document.getElementById('journal-history');
+  if (!container) return;
+  const sessions = loadSessions().reverse(); // Plus récent en premier
+
+  if (!sessions.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:3rem;margin-bottom:.75rem">📔</div>
+        <div class="empty-title">Journal vide</div>
+        <p style="color:var(--ink-f);max-width:380px;margin:.5rem auto 0">
+          Commence à noter tes sessions ! Importe ta save pour que le journal enregistre aussi ton niveau et tes Pals.
+        </p>
+      </div>`;
+    return;
+  }
+
+  // Grouper par date
+  const byDate = {};
+  sessions.forEach(s => {
+    const d = new Date(s.date).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(s);
+  });
+
+  container.innerHTML = Object.entries(byDate).map(([date, entries]) => `
+    <div style="margin-bottom:1.5rem">
+      <div style="font-family:var(--ff-d);font-size:.85rem;font-weight:700;color:var(--ink-f);
+        text-transform:capitalize;margin-bottom:.65rem;padding-bottom:.35rem;border-bottom:var(--bdr)">
+        📅 ${date}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.55rem">
+        ${entries.map(e => {
+          const time = new Date(e.date).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+          return `
+          <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);
+            padding:.85rem 1rem;box-shadow:var(--sh);display:flex;gap:.85rem">
+            <div style="flex-shrink:0;font-size:1.6rem">${e.mood || '📝'}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.82rem;line-height:1.6;color:var(--ink-s)">${escHtml(e.text)}</div>
+              <div style="display:flex;gap:.75rem;margin-top:.4rem;flex-wrap:wrap">
+                <span style="font-size:.65rem;color:var(--ink-f)">${time}</span>
+                ${e.level ? `<span style="font-size:.65rem;color:var(--sun)">Niv ${e.level}</span>` : ''}
+                ${e.captured ? `<span style="font-size:.65rem;color:var(--mint-d)">${e.captured} Pals</span>` : ''}
+              </div>
+            </div>
+            <button onclick="deleteJournalEntry(${e.id})" style="background:none;border:none;cursor:pointer;
+              color:var(--ink-f);font-size:.8rem;flex-shrink:0;opacity:.5;align-self:flex-start"
+              title="Supprimer">✕</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function deleteJournalEntry(id) {
+  const sessions = loadSessions().filter(s => s.id !== id);
+  saveSessions(sessions);
+  renderJournalHistory();
+  showToast('🗑️ Entrée supprimée', 'info', 2000);
+}
+
+/* ── Intégration dans navigate() + onSaveAnalyzed ── */
+
+/* ══════════════════════════════════════════════════════════════
+   PAGE STATS — Visualisations Chart.js
+══════════════════════════════════════════════════════════════ */
+
+let _charts = {};
+
+function destroyChart(id) {
+  if (_charts[id]) { _charts[id].destroy(); delete _charts[id]; }
+}
+
+function pinMission(id) {
+  const missions = JSON.parse(localStorage.getItem('dresseur_pinned_missions') || '{}');
+  if (missions[id]) {
+    delete missions[id];
+    showToast('📌 Mission désépinglée', 'info', 1500);
+  } else {
+    missions[id] = { pinnedAt: new Date().toISOString() };
+    showToast('📌 Mission épinglée dans le journal !', 'success', 2000);
+  }
+  localStorage.setItem('dresseur_pinned_missions', JSON.stringify(missions));
+}
+
+function initStats() {
+  renderStatsTab_progression();
+}
+
+
+function setStatsTab(tab, btn) {
+  document.querySelectorAll('#pg-stats .tab').forEach(t => t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  ['progression','elements','travail','galerie'].forEach(t => {
+    const el = document.getElementById('stats-tab-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
+  if (tab === 'progression') renderStatsTab_progression();
+  if (tab === 'elements')    renderStatsTab_elements();
+  if (tab === 'travail')     renderStatsTab_travail();
+  if (tab === 'galerie')     renderStatsTab_galerie();
+}
+
+/* ── Progression dans le temps ── */
+function renderStatsTab_progression() {
+  const sessions = loadSessions();
+  const analysis = window._saveAnalysis;
+
+  if (!sessions.length && !analysis) {
+    document.getElementById('stats-no-save').style.display = '';
+    document.getElementById('stats-progression-content').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('stats-no-save').style.display = 'none';
+  document.getElementById('stats-progression-content').style.display = '';
+
+  // Construire les séries de données depuis les sessions
+  const points = sessions.map(s => ({
+    date: new Date(s.date).toLocaleDateString('fr-FR', {day:'numeric', month:'short'}),
+    level: s.level || 0,
+    captured: s.captured || 0,
+  }));
+
+  // Ajouter l'état actuel si save importée
+  if (analysis?.level) {
+    const today = new Date().toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+    const last = points[points.length-1];
+    if (!last || last.date !== today) {
+      points.push({date: today, level: analysis.level, captured: analysis.capturedNames?.size || 0});
+    }
+  }
+
+  const chartDefaults = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#888', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+      y: { ticks: { color: '#888', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+    },
+  };
+
+  // Chart niveaux
+  destroyChart('levels');
+  if (points.length >= 1) {
+    const ctx = document.getElementById('chart-levels')?.getContext('2d');
+    if (ctx) _charts['levels'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: points.map(p => p.date),
+        datasets: [{
+          data: points.map(p => p.level),
+          borderColor: '#FFD700', backgroundColor: 'rgba(255,208,0,.1)',
+          borderWidth: 2, fill: true, tension: 0.4,
+          pointBackgroundColor: '#FFD700', pointRadius: 4,
+        }],
+      },
+      options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0 } } },
+    });
+  }
+
+  // Chart captures
+  destroyChart('captures');
+  if (points.length >= 1) {
+    const ctx = document.getElementById('chart-captures')?.getContext('2d');
+    if (ctx) _charts['captures'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: points.map(p => p.date),
+        datasets: [{
+          data: points.map(p => p.captured),
+          borderColor: '#00E34A', backgroundColor: 'rgba(0,227,74,.1)',
+          borderWidth: 2, fill: true, tension: 0.4,
+          pointBackgroundColor: '#00E34A', pointRadius: 4,
+        }],
+      },
+      options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0, max: PALS.length } } },
+    });
+  }
+
+  // Chart scores (calculés depuis les sessions)
+  destroyChart('scores');
+  if (points.length >= 1 && analysis) {
+    const scores = points.map(p => {
+      const pct = PALS.length > 0 ? Math.round(p.captured / PALS.length * 100) : 0;
+      return pct;
+    });
+    const ctx = document.getElementById('chart-scores')?.getContext('2d');
+    if (ctx) _charts['scores'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: points.map(p => p.date),
+        datasets: [{
+          label: '% Paldeck',
+          data: scores,
+          backgroundColor: scores.map(s => s >= 70 ? '#00E34A' : s >= 40 ? '#FFD700' : '#FF6B35'),
+          borderRadius: 4,
+        }],
+      },
+      options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0, max: 100 } } },
+    });
+  }
+}
+
+/* ── Distribution par éléments ── */
+function renderStatsTab_elements() {
+  const analysis = window._saveAnalysis;
+  const capturedNames = analysis?.capturedNames || new Set();
+
+  const EL_COLORS_CHART = {
+    fire:'#FF6B35', water:'#4FC3F7', electric:'#FFD54F',
+    grass:'#66BB6A', ice:'#80DEEA', dark:'#9C27B0',
+    dragon:'#6C4CF2', ground:'#A1887F', neutral:'#9E9E9E',
+  };
+
+  // Compter par élément
+  function countByEl(palList) {
+    const counts = {};
+    palList.forEach(p => p.el.forEach(e => { counts[e] = (counts[e]||0) + 1; }));
+    return counts;
+  }
+
+  const mine    = PALS.filter(p => capturedNames.has(p.name));
+  const allPals = PALS;
+
+  const countsMine = countByEl(mine);
+  const countsAll  = countByEl(allPals);
+  const labels     = Object.keys(EL[Object.keys(EL)[0]] ? EL : {}).length
+    ? Object.keys(EL).filter(e => countsAll[e])
+    : ['fire','water','electric','grass','ice','dark','dragon','ground','neutral'];
+
+  const makeDonut = (canvasId, counts, labelMap) => {
+    destroyChart(canvasId);
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const validLabels = labels.filter(e => counts[e]);
+    _charts[canvasId] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: validLabels.map(e => EL[e]?.name || e),
+        datasets: [{
+          data: validLabels.map(e => counts[e] || 0),
+          backgroundColor: validLabels.map(e => EL_COLORS_CHART[e] || '#888'),
+          borderWidth: 2,
+          borderColor: 'var(--paper)',
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'right', labels: { color: '#aaa', font: { size: 11 }, boxWidth: 14 } },
+        },
+      },
+    });
+  };
+
+  makeDonut('chart-elements-mine', countsMine);
+  makeDonut('chart-elements-all',  countsAll);
+
+  // Barres comparatives
+  const barsEl = document.getElementById('stats-elements-bars');
+  if (barsEl) {
+    barsEl.innerHTML = `
+      <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1rem;box-shadow:var(--sh)">
+        <div style="font-family:var(--ff-d);font-weight:700;margin-bottom:.85rem;font-size:.9rem">Couverture par élément</div>
+        <div style="display:flex;flex-direction:column;gap:.45rem">
+          ${labels.filter(e => countsAll[e]).map(e => {
+            const total   = countsAll[e]  || 0;
+            const have    = countsMine[e] || 0;
+            const pct     = total > 0 ? Math.round(have/total*100) : 0;
+            const color   = EL_COLORS_CHART[e] || '#888';
+            return `<div style="display:flex;align-items:center;gap:.75rem">
+              <div style="width:90px;display:flex;align-items:center;gap:.3rem;flex-shrink:0">
+                ${elIconImg(e,16)||EL[e]?.icon||''}
+                <span style="font-size:.72rem;font-weight:700">${EL[e]?.name||e}</span>
+              </div>
+              <div style="flex:1">
+                <div class="progress-track" style="height:8px">
+                  <div class="progress-fill" style="width:${pct}%;height:100%;background:${color}"></div>
+                </div>
+              </div>
+              <div style="font-family:var(--ff-m);font-size:.7rem;width:70px;text-align:right;flex-shrink:0">
+                <strong style="color:${color}">${have}</strong><span style="color:var(--ink-f)">/${total}</span>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }
+}
+
+/* ── Couverture travail ── */
+function renderStatsTab_travail() {
+  const analysis = window._saveAnalysis;
+  const capturedPals = PALS.filter(p => analysis?.capturedNames?.has(p.name));
+
+  const JOBS_CHART = [
+    {id:'kindling', label:'Allumage'},     {id:'watering', label:'Arrosage'},
+    {id:'planting', label:'Plantation'},   {id:'electric', label:'Énergie'},
+    {id:'handiwork',label:'Artisanat'},    {id:'gathering',label:'Collecte'},
+    {id:'lumbering',label:'Abattage'},     {id:'mining',   label:'Minage'},
+    {id:'medicine', label:'Pharmacie'},    {id:'cooling',  label:'Réfrigération'},
+    {id:'transporting',label:'Transport'}, {id:'farming',  label:'Élevage'},
+  ];
+
+  const scores = JOBS_CHART.map(job => {
+    const best = capturedPals.filter(p=>(p.work||{})[job.id]).sort((a,b)=>(b.work[job.id]||0)-(a.work[job.id]||0))[0];
+    return { ...job, lv: best?.work?.[job.id] || 0, palName: best?.name || null };
+  });
+
+  destroyChart('travail');
+  const ctx = document.getElementById('chart-travail')?.getContext('2d');
+  if (ctx) _charts['travail'] = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: scores.map(s => s.label),
+      datasets: [{
+        label: 'Niveau max',
+        data: scores.map(s => s.lv),
+        backgroundColor: 'rgba(0,227,74,.15)',
+        borderColor: '#00E34A',
+        borderWidth: 2,
+        pointBackgroundColor: scores.map(s => s.lv >= 3 ? '#00E34A' : s.lv >= 2 ? '#FFD700' : '#FF6B35'),
+        pointRadius: 5,
+      }],
+    },
+    options: {
+      responsive: true,
+      scales: {
+        r: {
+          min: 0, max: 4,
+          ticks: { color: '#888', stepSize: 1, backdropColor: 'transparent' },
+          grid:  { color: 'rgba(255,255,255,.08)' },
+          pointLabels: { color: '#aaa', font: { size: 11 } },
+        },
+      },
+      plugins: { legend: { display: false } },
+    },
+  });
+
+  const details = document.getElementById('stats-travail-details');
+  if (details) {
+    details.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem">
+        ${scores.map(s => {
+          const color = s.lv >= 3 ? 'var(--mint-d)' : s.lv >= 2 ? 'var(--sun)' : s.lv >= 1 ? 'var(--coral)' : '#555';
+          const stars = '★'.repeat(s.lv) + '☆'.repeat(4-s.lv);
+          return `<div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-sm);
+            padding:.5rem .75rem;display:flex;align-items:center;gap:.5rem;border-left:3px solid ${color}">
+            ${workIconImg(s.id,18)}
+            <div style="flex:1">
+              <div style="font-size:.72rem;font-weight:700">${s.label}</div>
+              ${s.palName ? `<div style="font-size:.62rem;color:var(--ink-f)">${s.palName}</div>` : ''}
+            </div>
+            <span style="font-family:var(--ff-m);font-size:.7rem;color:${color}">${stars}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+}
+
+/* ── Mode Galerie ── */
+let _galerieFilter = 'all';
+
+function setGalerieFilter(f, btn) {
+  _galerieFilter = f;
+  document.querySelectorAll('#stats-tab-galerie .map-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderStatsTab_galerie();
+}
+
+function renderStatsTab_galerie() {
+  const captured = window._saveAnalysis?.capturedNames || new Set();
+  let pals = [...PALS].sort((a,b) => a.id.localeCompare(b.id));
+  if (_galerieFilter === 'captured') pals = pals.filter(p => captured.has(p.name));
+  if (_galerieFilter === 'missing')  pals = pals.filter(p => !captured.has(p.name));
+
+  const count = document.getElementById('galerie-count');
+  if (count) count.textContent = `${pals.length} Pals`;
+
+  const grid = document.getElementById('galerie-grid');
+  if (!grid) return;
+
+  grid.innerHTML = pals.map(p => {
+    const isCaptured = captured.has(p.name);
+    const imgUrl = PAL_IMAGES?.[p.name] || '';
+    return `<div onclick="openModal('${p.id}')" title="${p.name}"
+      style="width:64px;height:64px;border-radius:8px;cursor:pointer;flex-shrink:0;
+        border:2px solid ${isCaptured?'var(--mint-d)':'var(--line)'};
+        opacity:${isCaptured?1:.3};transition:transform .12s,opacity .12s;
+        background:var(--paper-d);display:flex;align-items:center;justify-content:center;position:relative"
+      onmouseover="this.style.transform='scale(1.18)';this.style.opacity='1';this.style.zIndex='5'"
+      onmouseout="this.style.transform='';this.style.opacity='${isCaptured?1:.3}';this.style.zIndex=''">
+      ${imgUrl
+        ? `<img src="${imgUrl}" alt="${p.name}" width="52" height="52" loading="lazy" style="border-radius:5px" onerror="this.style.display='none'">`
+        : `<span style="font-size:1.3rem">🐾</span>`}
+      ${isCaptured ? `<div style="position:absolute;bottom:1px;right:2px;font-size:.5rem;color:var(--mint-d);font-weight:900;line-height:1">✓</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   TRACKER ALPHA — Checklist des boss Alpha
+══════════════════════════════════════════════════════════════ */
+
+const ALPHA_BOSSES = [
+  // Sanctuaires
+  {name:'Grizzbolt',    zone:'Sanctuaire No.1', lv:23, el:'electric', note:'Boss de la Tour Rayne aussi'},
+  {name:'Anubis',       zone:'Sanctuaire No.2 (Désert)', lv:47, el:'ground',   note:'Meilleur Artisanat Lv4'},
+  {name:'Lyleen',       zone:'Sanctuaire No.2 (Île oubliée)', lv:49, el:'grass', note:'Plantation+Pharmacie Lv3'},
+  {name:'Blazamut',     zone:'Sanctuaire No.3', lv:49, el:'fire',     note:'Minage+Allumage Lv4'},
+  {name:'Shadowbeak',   zone:'Sanctuaire No.3', lv:50, el:'dark',     note:'Monture volante endgame'},
+  {name:'Jormuntide',   zone:'Investigator Fork', lv:45, el:'water',  note:'Dragon eau Lv4'},
+  {name:'Orserk',       zone:'Île Désolation', lv:47, el:'electric',  note:'Énergie Lv4'},
+  // Zones principales
+  {name:'Mammorest',    zone:'Forêt de bambous', lv:38, el:'grass',   note:'Grande capture early/mid'},
+  {name:'Warsect',      zone:'Collines Résurrection', lv:38, el:'grass', note:'Bug en combat Lv1'},
+  {name:'Quivern',      zone:'Collines Résurrection', lv:23, el:'dragon', note:'Accessible tôt'},
+  {name:'Kingpaca',     zone:'Collines verdoyantes', lv:38, el:'neutral'},
+  {name:'Digtoise',     zone:'Plateau Crépuscule', lv:30, el:'ground', note:'Minage Lv3'},
+  {name:'Tombat',       zone:'Plateau Crépuscule', lv:28, el:'dark'},
+  {name:'Penking',      zone:'Archipel Brise de mer', lv:15, el:'water'},
+  {name:'Elizabee',     zone:'Archipel Brise de mer', lv:30, el:'grass', note:'Élevage Lv1'},
+  {name:'Mossanda',     zone:'Collines ventées', lv:28, el:'grass'},
+  {name:'Cryolinx',     zone:'Montagne glacée', lv:43, el:'ice', note:'Abattage+Réfrigération Lv3'},
+  {name:'Menasting',    zone:'Dunes arides', lv:44, el:'dark', note:'Minage Lv2 + combat'},
+  {name:'Relaxaurus',   zone:'Collines verdoyantes', lv:25, el:'dragon'},
+  {name:'Beakon',       zone:'Collines ventées', lv:29, el:'electric', note:'Énergie Lv3, monture'},
+  {name:'Ragnahawk',    zone:'Île volcanique', lv:32, el:'fire', note:'Allumage Lv3, monture'},
+  {name:'Katress',      zone:'Collines ventées', lv:23, el:'dark'},
+  {name:'Wixen',        zone:'Collines ventées', lv:19, el:'fire'},
+  {name:'Azurobe',      zone:'Côte centrale', lv:29, el:'water'},
+  {name:'Helzephyr',    zone:'Hypocrite Hill', lv:39, el:'dark'},
+  {name:'Astegon',      zone:'Sanctuaire obscur', lv:48, el:'dragon', note:'Meilleur mineur Lv4'},
+  {name:'Faleris',      zone:'Désert', lv:32, el:'fire', note:'Boss Tour PIDF aussi'},
+  {name:'Lyleen Noct',  zone:'Île oubliée', lv:47, el:'dark'},
+  {name:'Suzaku',       zone:'Rive écarlate', lv:45, el:'fire'},
+  {name:'Reptyro',      zone:'Île volcanique', lv:40, el:'fire'},
+  {name:'Blazehowl',    zone:'Île volcanique', lv:36, el:'fire'},
+  {name:'Fenglope',     zone:'Toundra', lv:36, el:'neutral'},
+  {name:'Vanwyrm',      zone:'Falaises crépuscule', lv:24, el:'fire'},
+  {name:'Pyrin',        zone:'Toundra', lv:32, el:'fire'},
+  {name:'Nitewing',     zone:'Collines ventées', lv:18, el:'neutral'},
+  {name:'Incineram',    zone:'Zone forestière', lv:26, el:'fire'},
+  {name:'Chillet',      zone:'Zone côtière', lv:11, el:'ice'},
+  {name:'Univolt',      zone:'Toundra', lv:31, el:'electric'},
+  // Légendaires (considérés comme Alpha)
+  {name:'Jetragon',     zone:'Île Volcanique', lv:55, el:'dragon', note:'★ LÉGENDAIRE — Sprint 3300'},
+  {name:'Frostallion',  zone:'Toundra Absolue', lv:55, el:'ice',  note:'★ LÉGENDAIRE — Meilleure monture volante'},
+  {name:'Paladius',     zone:'Plaines Saintes', lv:55, el:'neutral', note:'★ LÉGENDAIRE'},
+  {name:'Necromus',     zone:'Désert des Âmes', lv:55, el:'dark', note:'★ LÉGENDAIRE'},
+  {name:'Neptilius',    zone:'Eaux profondes', lv:60, el:'water', note:'★ LÉGENDAIRE — Arrosage Lv4'},
+  // Feybreak
+  {name:'Bastigor',     zone:'Feybreak', lv:60, el:'ice', note:'Boss Tour Feybreak'},
+  {name:'Xenolord',     zone:'Feybreak (Raid)', lv:60, el:'dark', note:'Raid uniquement'},
+  {name:'Silvegis',     zone:'Feybreak', lv:55, el:'neutral'},
+  {name:'Azurmane',     zone:'Feybreak', lv:52, el:'electric', note:'Énergie Lv4'},
+];
+
+let _trackerFilter = 'all';
+
+function loadTrackerData() {
+  try { return JSON.parse(localStorage.getItem('dresseur_tracker_alpha') || '{}'); }
+  catch { return {}; }
+}
+function saveTrackerData(data) {
+  localStorage.setItem('dresseur_tracker_alpha', JSON.stringify(data));
+}
+
+function initTracker() {
+  renderTracker();
+}
+
+function setTrackerFilter(f, btn) {
+  _trackerFilter = f;
+  document.querySelectorAll('#pg-tracker .map-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTracker();
+}
+
+function toggleAlpha(name) {
+  const data = loadTrackerData();
+  if (data[name]) delete data[name]; else data[name] = true;
+  saveTrackerData(data);
+  renderTracker();
+  showToast(data[name] ? `⭐ ${name} marqué capturé !` : `❌ ${name} retiré`, 'info', 1500);
+}
+
+function resetTracker() {
+  if (!confirm('Remettre à zéro le tracker Alpha ?')) return;
+  localStorage.removeItem('dresseur_tracker_alpha');
+  renderTracker();
+  showToast('🗑️ Tracker réinitialisé', 'info');
+}
+
+function renderTracker() {
+  const data = loadTrackerData();
+  const analysis = window._saveAnalysis;
+  const capturedNames = analysis?.capturedNames || new Set();
+
+  // Auto-cocher depuis la save si disponible
+  if (capturedNames.size > 0) {
+    ALPHA_BOSSES.forEach(boss => {
+      if (capturedNames.has(boss.name) && !data[boss.name]) data[boss.name] = true;
+    });
+    saveTrackerData(data);
+  }
+
+  const done  = ALPHA_BOSSES.filter(b => data[b.name]).length;
+  const total = ALPHA_BOSSES.length;
+  const pct   = Math.round(done / total * 100);
+
+  // Barre de progression
+  const fillEl = document.getElementById('tracker-fill');
+  if (fillEl) setTimeout(() => fillEl.style.width = pct + '%', 100);
+
+  const textEl = document.getElementById('tracker-progress-text');
+  if (textEl) textEl.textContent = `${done} / ${total} Alpha capturés (${pct}%)`;
+
+  // Filtrer
+  let bosses = ALPHA_BOSSES;
+  if (_trackerFilter === 'done')    bosses = bosses.filter(b => data[b.name]);
+  if (_trackerFilter === 'missing') bosses = bosses.filter(b => !data[b.name]);
+
+  const EL_COLORS_T = {
+    fire:'#FF6B35', water:'#4FC3F7', electric:'#FFD54F',
+    grass:'#66BB6A', ice:'#80DEEA', dark:'#9C27B0',
+    dragon:'#6C4CF2', ground:'#A1887F', neutral:'#9E9E9E',
+  };
+
+  const grid = document.getElementById('tracker-grid');
+  if (!grid) return;
+
+  if (!bosses.length) {
+    grid.innerHTML = `<div class="empty-state"><div style="font-size:3rem">🎉</div><div class="empty-title">${_trackerFilter==='done'?'Aucun Alpha capturé pour l\'instant':'Tous les Alpha sont capturés !'}</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.65rem">
+    ${bosses.map(boss => {
+      const isDone    = !!data[boss.name];
+      const elColor   = EL_COLORS_T[boss.el] || '#888';
+      const palObj    = PALS.find(p => p.name === boss.name);
+      const isLeg     = boss.note?.includes('LÉGENDAIRE');
+
+      return `<div onclick="toggleAlpha('${boss.name}')"
+        style="background:var(--glass);border:2px solid ${isDone ? 'var(--mint-d)' : isLeg ? 'var(--sun)' : 'var(--line)'};
+          border-radius:var(--r-md);padding:.75rem 1rem;cursor:pointer;
+          opacity:${isDone?1:.8};transition:all .15s;box-shadow:var(--sh);
+          ${isDone?'background:rgba(0,227,74,.06)':''}"
+        onmouseover="this.style.transform='translateY(-2px)'"
+        onmouseout="this.style.transform=''">
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <div style="flex-shrink:0;position:relative">
+            ${palImg(boss.name, 44)}
+            <div style="position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;
+              background:${isDone?'var(--mint-d)':'var(--line)'};display:flex;align-items:center;justify-content:center;
+              font-size:.55rem;border:2px solid var(--paper)">${isDone?'✓':'○'}</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.85rem;display:flex;align-items:center;gap:.3rem">
+              ${boss.name}
+              ${isLeg ? '<span style="font-size:.55rem;background:var(--sun);color:#000;padding:.1rem .3rem;border-radius:3px;font-weight:800">LEG</span>' : ''}
+            </div>
+            <div style="font-size:.68rem;color:var(--ink-f);margin-top:.1rem">
+              📍 ${boss.zone} · <span style="color:${elColor};font-weight:700">Lv ${boss.lv}</span>
+            </div>
+            ${boss.note && !isLeg ? `<div style="font-size:.62rem;color:var(--ink-f);margin-top:.1rem;font-style:italic">${boss.note}</div>` : ''}
+          </div>
+          <div style="font-size:1.3rem;flex-shrink:0">${isDone?'✅':'⬜'}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GUIDE DE RAID PERSONNALISÉ dans le Dashboard
+══════════════════════════════════════════════════════════════ */
+
+function renderRaidGuide(analysis) {
+  const panel = document.getElementById('raid-guide-panel');
+  if (!panel || !analysis?.capturedNames?.size) { if(panel) panel.innerHTML=''; return; }
+
+  const capturedPals = PALS.filter(p => analysis.capturedNames.has(p.name));
+  const lv = analysis.level || 0;
+
+  // Raids accessibles selon le niveau
+  const accessibleRaids = RAIDS.filter(r => lv >= (r.lvl - 5));
+  if (!accessibleRaids.length) { panel.innerHTML=''; return; }
+
+  // Pour chaque raid, trouver les meilleurs Pals de la collection
+  const RAID_COUNTERS = {
+    'Bellanoir':         ['dark','neutral'],
+    'Bellanoir Libero':  ['dark','neutral'],
+    'Blazamut Ryu':      ['water','ice'],
+    'Xenolord':          ['dragon','ice'],
+    'Moon Lord':         ['electric','grass'],
+    'Hartalis':          ['fire','dark'],
+  };
+
+  const EL_COLORS_R = {fire:'#FF6B35',water:'#4FC3F7',electric:'#FFD54F',dark:'#9C27B0',neutral:'#9E9E9E',ice:'#80DEEA',dragon:'#6C4CF2'};
+
+  panel.innerHTML = `
+    <div style="background:var(--glass);border:var(--bdr);border-radius:var(--r-md);padding:1.1rem 1.25rem;box-shadow:var(--sh)">
+      <h3 style="font-family:var(--ff-d);font-size:1rem;margin-bottom:.85rem">⚔️ Guide de raid personnalisé</h3>
+      <div style="display:flex;flex-direction:column;gap:.75rem">
+        ${accessibleRaids.slice(0,3).map(raid => {
+          const counters  = RAID_COUNTERS[raid.name] || [];
+          const elColor   = EL_COLORS_R[raid.el] || '#888';
+
+          // Trouver les meilleurs Pals depuis la collection contre ce raid
+          const bestPals  = capturedPals
+            .filter(p => counters.some(el => p.el.includes(el)))
+            .sort((a,b) => b.atk - a.atk)
+            .slice(0, 4);
+
+          // Pals manquants conseillés
+          const missingPals = PALS
+            .filter(p => !analysis.capturedNames.has(p.name) && counters.some(el => p.el.includes(el)))
+            .filter(p => getTier(p.name) === 'S' || getTier(p.name) === 'A')
+            .slice(0, 2);
+
+          return `<div style="border-left:4px solid ${elColor};padding:.75rem 1rem;background:var(--paper-d);border-radius:0 var(--r-sm) var(--r-sm) 0">
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+              <strong style="font-family:var(--ff-d)">${raid.name}</strong>
+              <span style="font-size:.65rem;padding:.1rem .4rem;background:${elColor};color:${['#FFD54F','#80DEEA'].includes(elColor)?'#000':'#fff'};border-radius:4px;font-weight:700">Lv ${raid.lvl}</span>
+              <span style="font-size:.65rem;color:var(--ink-f)">${raid.req}</span>
+            </div>
+            ${bestPals.length ? `
+              <div style="font-size:.68rem;color:var(--mint-d);font-weight:700;margin-bottom:.3rem">✅ Tes meilleurs Pals pour ce raid</div>
+              <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.4rem">
+                ${bestPals.map(p => `<div style="display:flex;align-items:center;gap:.3rem;padding:.2rem .5rem;background:rgba(0,227,74,.1);border-radius:5px;font-size:.7rem">
+                  ${palImg(p.name,24)} <strong>${p.name}</strong>
+                </div>`).join('')}
+              </div>` : `<div style="font-size:.72rem;color:var(--coral);margin-bottom:.4rem">⚠️ Aucun Pal adapté dans ta collection — capture des Pals ${counters.join('/')} !</div>`}
+            ${missingPals.length ? `
+              <div style="font-size:.68rem;color:var(--ink-f);font-weight:700;margin-bottom:.3rem">🎯 Renforcer avec</div>
+              <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+                ${missingPals.map(p => `<div style="display:flex;align-items:center;gap:.3rem;padding:.2rem .4rem;background:var(--glass);border:var(--bdr);border-radius:5px;font-size:.68rem;opacity:.8">
+                  ${palImg(p.name,20)} ${p.name}
+                </div>`).join('')}
+              </div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+/* ── Hooker dans onSaveAnalyzed et initDashboard ── */
+
+/* ══════════════════════════════════════════════════════════════
+   RECETTES DÉBLOQUÉES — Depuis la save
+   Utilise TECH_ID_MAP (techids.js) pour mapper IDs → noms
+══════════════════════════════════════════════════════════════ */
+
+/* ── Onglet Recettes dans Ma Save ── */
+function renderRecipesTab(unlockedRecipes) {
+  if (!unlockedRecipes || unlockedRecipes.size === 0) {
+    return `<div class="empty-state">
+      <div style="font-size:3rem;margin-bottom:.75rem">🔒</div>
+      <div class="empty-title">Aucune recette détectée</div>
+      <p style="color:var(--ink-f);max-width:380px;margin:.5rem auto 0">
+        Le parser n'a pas trouvé de données de technologie dans ce fichier.
+        Essaie avec ton fichier <code>Players/{id}.sav</code> ou <code>Level.sav</code>.
+      </p>
+    </div>`;
+  }
+
+  // Mapper les IDs débloqués vers les noms via TECH_ID_MAP
+  const unlockedNames = new Set();
+  const unknownIds    = new Set();
+
+  unlockedRecipes.forEach(id => {
+    // Nettoyer l'ID (enlever préfixes communs)
+    const clean = id
+      .replace(/^EPalTechnologyID::/,'')
+      .replace(/^PalTechnology_Id_/,'')
+      .replace(/^Product_/,'Product_')
+      .trim();
+
+    if (typeof TECH_ID_MAP !== 'undefined' && TECH_ID_MAP[clean]) {
+      unlockedNames.add(TECH_ID_MAP[clean]);
+    } else if (typeof TECH_ID_MAP !== 'undefined' && TECH_ID_MAP[id]) {
+      unlockedNames.add(TECH_ID_MAP[id]);
+    } else {
+      unknownIds.add(id);
+    }
+  });
+
+  // Croiser avec TECH_TREE pour voir quels niveaux sont couverts
+  const techStatus = TECH_TREE.map(lvl => {
+    const items = lvl.items || [];
+    const unlocked = items.filter(item => {
+      const name = typeof item === 'string' ? item : item.name;
+      return unlockedNames.has(name);
+    });
+    return {
+      lv: lvl.lv || lvl.lvl,
+      pts: lvl.pts,
+      total: items.length,
+      unlocked: unlocked.length,
+      items: items.map(item => {
+        const name = typeof item === 'string' ? item : item.name;
+        return { name, done: unlockedNames.has(name) };
+      }),
+    };
+  }).filter(l => l.total > 0);
+
+  const totalItems    = techStatus.reduce((s,l) => s + l.total, 0);
+  const totalUnlocked = techStatus.reduce((s,l) => s + l.unlocked, 0);
+  const pct = Math.round(totalUnlocked / totalItems * 100);
+
+  // Trouver le niveau max débloqué
+  const maxUnlockedLv = techStatus.filter(l => l.unlocked > 0).slice(-1)[0]?.lv || 0;
+
+  // Niveaux incomplets (des items manquants)
+  const incomplete = techStatus.filter(l => l.unlocked > 0 && l.unlocked < l.total);
+
+  return `
+    <!-- Résumé -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;margin-bottom:1.5rem">
+      <div style="text-align:center;padding:.85rem;background:var(--paper-d);border-radius:var(--r-md);border:var(--bdr)">
+        <div style="font-family:var(--ff-d);font-size:1.6rem;font-weight:900;color:var(--sun)">${totalUnlocked}</div>
+        <div style="font-size:.72rem;font-weight:700">Recettes débloquées</div>
+        <div style="font-size:.62rem;color:var(--ink-f)">sur ${totalItems} au total</div>
+      </div>
+      <div style="text-align:center;padding:.85rem;background:var(--paper-d);border-radius:var(--r-md);border:var(--bdr)">
+        <div style="font-family:var(--ff-d);font-size:1.6rem;font-weight:900;color:var(--mint-d)">${pct}%</div>
+        <div style="font-size:.72rem;font-weight:700">Arbre technologique</div>
+        <div style="font-size:.62rem;color:var(--ink-f)">complété</div>
+      </div>
+      <div style="text-align:center;padding:.85rem;background:var(--paper-d);border-radius:var(--r-md);border:var(--bdr)">
+        <div style="font-family:var(--ff-d);font-size:1.6rem;font-weight:900;color:var(--lagoon)">${maxUnlockedLv}</div>
+        <div style="font-size:.72rem;font-weight:700">Niveau max atteint</div>
+        <div style="font-size:.62rem;color:var(--ink-f)">dans l'arbre tech</div>
+      </div>
+      <div style="text-align:center;padding:.85rem;background:var(--paper-d);border-radius:var(--r-md);border:var(--bdr)">
+        <div style="font-family:var(--ff-d);font-size:1.6rem;font-weight:900;color:var(--coral)">${incomplete.length}</div>
+        <div style="font-size:.72rem;font-weight:700">Niveaux partiels</div>
+        <div style="font-size:.62rem;color:var(--ink-f)">recettes manquantes</div>
+      </div>
+    </div>
+
+    <!-- Barre progression -->
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:.35rem">
+        <span>Progression de l'arbre technologique</span>
+        <span style="font-family:var(--ff-m);font-weight:700;color:var(--mint-d)">${totalUnlocked} / ${totalItems}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${pct}%"></div>
+      </div>
+    </div>
+
+    <!-- Recettes manquantes prioritaires -->
+    ${incomplete.length > 0 ? `
+    <div style="background:rgba(255,208,0,.08);border:1.5px solid var(--sun);border-radius:var(--r-md);padding:1rem 1.25rem;margin-bottom:1.25rem">
+      <div style="font-family:var(--ff-d);font-weight:700;font-size:.9rem;margin-bottom:.75rem">
+        ⚠️ Recettes manquantes dans des niveaux partiellement débloqués
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.4rem">
+        ${incomplete.slice(0,5).map(l => {
+          const missing = l.items.filter(i => !i.done);
+          return `<div style="padding:.5rem .75rem;background:var(--paper-d);border-radius:6px;border-left:3px solid var(--sun)">
+            <div style="font-size:.72rem;font-weight:700;margin-bottom:.2rem">Niveau ${l.lv} — ${l.unlocked}/${l.total} débloquées</div>
+            <div style="font-size:.68rem;color:var(--ink-f)">${missing.map(i=>`🔒 ${i.name}`).join(' · ')}</div>
+          </div>`;
+        }).join('')}
+        ${incomplete.length > 5 ? `<div style="font-size:.72rem;color:var(--ink-f);text-align:center">+${incomplete.length-5} autres niveaux partiels</div>` : ''}
+      </div>
+    </div>` : '<div style="color:var(--mint-d);font-weight:700;padding:.5rem 0;font-size:.85rem">✅ Tous les niveaux partiellement ou totalement complétés !</div>'}
+
+    <!-- Arbre complet niveau par niveau -->
+    <div style="font-family:var(--ff-d);font-weight:700;font-size:.9rem;margin-bottom:.85rem">📋 Détail par niveau</div>
+    <div style="display:flex;flex-direction:column;gap:.4rem">
+      ${techStatus.map(l => {
+        const pctL = l.total > 0 ? Math.round(l.unlocked/l.total*100) : 0;
+        const color = pctL === 100 ? 'var(--mint-d)' : pctL > 0 ? 'var(--sun)' : 'var(--line)';
+        return `<details style="background:var(--glass);border:var(--bdr);border-radius:var(--r-sm);overflow:hidden">
+          <summary style="padding:.55rem .85rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;list-style:none">
+            <span style="font-family:var(--ff-m);font-size:.7rem;font-weight:800;
+              padding:.2rem .5rem;border-radius:4px;background:${color};
+              color:${pctL>0?'#fff':'var(--ink-f)'}">Niv ${l.lv}</span>
+            <div style="flex:1">
+              <div style="height:4px;background:var(--line);border-radius:2px;overflow:hidden">
+                <div style="height:100%;width:${pctL}%;background:${color};border-radius:2px"></div>
+              </div>
+            </div>
+            <span style="font-family:var(--ff-m);font-size:.68rem;color:${color};font-weight:700">${l.unlocked}/${l.total}</span>
+            <span style="font-size:.65rem;color:var(--ink-f)">${pctL===100?'✓ Complet':pctL>0?'Partiel':'Non commencé'}</span>
+          </summary>
+          <div style="padding:.5rem .85rem .85rem;display:flex;flex-wrap:wrap;gap:.3rem">
+            ${l.items.map(i => `
+              <span style="font-size:.68rem;padding:.2rem .5rem;border-radius:4px;
+                background:${i.done?'rgba(0,227,74,.12)':'var(--paper-d)'};
+                border:1px solid ${i.done?'var(--mint-d)':'var(--line)'};
+                color:${i.done?'var(--mint-d)':'var(--ink-f)'};
+                text-decoration:${i.done?'none':'line-through'};opacity:${i.done?1:.6}">
+                ${i.done?'✓':''} ${i.name}
+              </span>`).join('')}
+          </div>
+        </details>`;
+      }).join('')}
+    </div>
+
+    ${unknownIds.size > 0 ? `
+    <details style="margin-top:1rem;opacity:.5">
+      <summary style="cursor:pointer;font-size:.7rem;color:var(--ink-f)">
+        ${unknownIds.size} IDs non reconnus (cliquer pour voir)
+      </summary>
+      <div style="font-family:var(--ff-m);font-size:.62rem;color:var(--ink-f);padding:.5rem;word-break:break-all">
+        ${[...unknownIds].join(', ')}
+      </div>
+    </details>` : ''}`;
+}
+
+/* ── Hooker dans renderSaveResults pour ajouter l'onglet Recettes ── */
+// Patch de renderSaveResults pour inclure l'onglet recettes si données disponibles
+const _origRenderSaveResults = renderSaveResults;
+function renderSaveResults(capturedIds, filename, analysis) {
+  _origRenderSaveResults(capturedIds, filename, analysis);
+
+  // Ajouter le bouton "Recettes" dans les onglets si recettes disponibles
+  const tabsContainer = document.querySelector('#save-results .tabs');
+  if (tabsContainer && !document.getElementById('save-tab-btn-recipes')) {
+    const btn = document.createElement('button');
+    btn.id = 'save-tab-btn-recipes';
+    btn.className = 'tab';
+    btn.innerHTML = '🔓 Recettes';
+    btn.onclick = () => {
+      showSaveTab('recipes', btn);
+      const existing = document.getElementById('save-tab-recipes');
+      if (existing && !existing.dataset.rendered) {
+        existing.innerHTML = renderRecipesTab(analysis.unlockedRecipes);
+        existing.dataset.rendered = '1';
+      }
+    };
+    tabsContainer.appendChild(btn);
+
+    // Créer le panneau recettes
+    const panel = document.createElement('div');
+    panel.id = 'save-tab-recipes';
+    panel.style.display = 'none';
+    panel.innerHTML = renderRecipesTab(analysis.unlockedRecipes);
+    panel.dataset.rendered = '1';
+    tabsContainer.parentElement.appendChild(panel);
+  }
 }
 
