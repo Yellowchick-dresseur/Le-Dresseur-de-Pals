@@ -754,3 +754,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,.15);
 }
+
+/* ── Page Maps pleine hauteur ── */
+#pg-maps { padding: 0 !important; }
+#pg-maps .container { padding: 0 !important; max-width: 100% !important; }
+#map-controls { position: sticky; top: 60px; z-index: 500; }
+.leaflet-popup-content-wrapper { border-radius: 8px !important; }
+.leaflet-popup-content { margin: 10px 14px !important; }

@@ -537,7 +537,7 @@
             <button class="btn btn-ghost btn-sm tech-type-btn" data-type="arme" onclick="setTechFilter('arme')">⚔️ Armes</button>
             <button class="btn btn-ghost btn-sm tech-type-btn" data-type="armure" onclick="setTechFilter('armure')">🛡️ Armures</button>
             <button class="btn btn-ghost btn-sm tech-type-btn" data-type="monture" onclick="setTechFilter('monture')">🐉 Montures</button>
-            <button class="btn btn-ghost btn-sm tech-type-btn" data-type="ancien" onclick="setTechFilter('ancien')">🏺 Anciens</button>
+            <button class="btn btn-ghost btn-sm tech-type-btn" data-type="sphère" onclick="setTechFilter('ancien')">🏺 Anciens</button>
           </div>
         </div>
         <div class="tech-tree" id="tech-tree"></div>
@@ -707,50 +707,33 @@
   <!-- ══════════════════════════════════════
        PAGE : MAPS
   ══════════════════════════════════════ -->
-  <main id="pg-maps" class="page">
-    <div class="container" style="padding-top:2rem">
-      <div class="page-hdr">
-        <div class="kicker">Carte Interactive</div>
-        <h1>🗺️ <em>Carte</em> de Palpagos</h1>
-        <p class="page-lead">Localise les Pals Alpha, donjons, coffres, effigies et points de téléportation. Données fournies par palworld.gg.</p>
-      </div>
+  <main id="pg-maps" class="page" style="padding:0">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
-      <!-- Filtres rapides -->
-      <div class="map-filters" id="map-filters">
-        <button class="map-filter-btn active" onclick="setMapFilter('all',this)">🌐 Tout</button>
-        <button class="map-filter-btn" onclick="setMapFilter('alpha',this)">⭐ Boss Alpha</button>
-        <button class="map-filter-btn" onclick="setMapFilter('dungeon',this)">⛏️ Donjons</button>
-        <button class="map-filter-btn" onclick="setMapFilter('tower',this)">🗼 Tours</button>
-        <button class="map-filter-btn" onclick="setMapFilter('legendary',this)">💎 Légendaires</button>
-        <button class="map-filter-btn" onclick="setMapFilter('effigy',this)">🗿 Effigies</button>
-        <button class="map-filter-btn" onclick="setMapFilter('teleport',this)">⚡ Téléports</button>
-        <button class="map-filter-btn" onclick="setMapFilter('fishing',this)">🎣 Pêche</button>
+    <!-- Barre de contrôles fixe au-dessus de la carte -->
+    <div id="map-controls" style="
+      display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;
+      padding:.6rem 1rem;background:var(--paper);border-bottom:var(--bdr);
+      position:sticky;top:0;z-index:500;">
+      <span style="font-family:var(--ff-d);font-weight:700;font-size:.9rem;flex-shrink:0">🗺️ Carte</span>
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;flex:1">
+        <button class="map-filter-btn active" data-layer="tower"     onclick="toggleLayer('tower',this)">🗼 Tours</button>
+        <button class="map-filter-btn active" data-layer="alpha"     onclick="toggleLayer('alpha',this)">⭐ Alpha</button>
+        <button class="map-filter-btn active" data-layer="legendary" onclick="toggleLayer('legendary',this)">💎 Légendaires</button>
+        <button class="map-filter-btn active" data-layer="dungeon"   onclick="toggleLayer('dungeon',this)">⛏️ Donjons</button>
+        <button class="map-filter-btn active" data-layer="teleport"  onclick="toggleLayer('teleport',this)">⚡ Téléports</button>
+        <button class="map-filter-btn active" data-layer="fishing"   onclick="toggleLayer('fishing',this)">🎣 Pêche</button>
       </div>
-
-      <!-- Iframe carte officielle palworld.gg -->
-      <div class="map-wrapper">
-        <iframe
-          id="map-iframe"
-          class="map-iframe"
-          src="https://palworld.gg/fr/map"
-          title="Carte Interactive Palworld"
-          loading="lazy"
-          allowfullscreen>
-        </iframe>
-      </div>
-
-      <div style="margin-top:.75rem;padding:.65rem 1rem;background:rgba(0,0,0,.04);border-radius:var(--r-sm);font-size:.78rem;color:var(--ink-f);display:flex;align-items:center;gap:.5rem">
-        ℹ️ La carte interactive est fournie par <a href="https://palworld.gg/fr/map" target="_blank" rel="noopener" style="color:var(--mint-d);font-weight:700">palworld.gg</a>.
-        Si elle ne s'affiche pas, <a href="https://palworld.gg/fr/map" target="_blank" rel="noopener" style="color:var(--mint-d)">ouvre-la directement</a>.
-        <button onclick="document.getElementById('map-iframe').src='https://palworld.gg/fr/map'" style="margin-left:auto;font-family:var(--ff-m);font-size:.68rem;font-weight:700;padding:.25rem .6rem;border-radius:5px;border:1.5px solid var(--line);background:var(--glass);cursor:pointer">🔄 Recharger</button>
-      </div>
-
-      <!-- Points d'intérêt à la main -->
-      <div id="map-poi-section" style="margin-top:2rem">
-        <h2 style="font-family:var(--ff-d);font-size:1.2rem;margin-bottom:1rem" id="map-poi-title">📍 Points d'intérêt — Tous</h2>
-        <div class="map-poi-grid" id="map-poi-grid"></div>
-      </div>
+      <a href="https://palworld.gg/fr/map" target="_blank" rel="noopener"
+         style="font-family:var(--ff-m);font-size:.65rem;color:var(--mint-d);text-decoration:none;white-space:nowrap">
+        🔗 Carte complète ↗
+      </a>
     </div>
+
+    <!-- Conteneur carte Leaflet -->
+    <div id="palworld-map" style="width:100%;height:calc(100vh - 120px);min-height:500px;background:#1a3a2a"></div>
   </main>
 
   <!-- ══════════════════════════════════════

@@ -654,7 +654,7 @@ function setComboFilter(tag) {
 }
 
 function renderCombos(tag) {
-  const list = tag === 'all' ? COMBOS : COMBOS.filter(c => c.tags.includes(tag));
+  const list = tag === 'all' ? BREEDING_COMBOS : BREEDING_COMBOS.filter(c => c.tags && c.tags.includes(tag));
   document.getElementById('combos-list').innerHTML = list.map(c => {
     const palA = PALS.find(p => p.name === c.parents[0]);
     const palB = PALS.find(p => p.name === c.parents[1]);
@@ -760,45 +760,118 @@ function onTechSearch() {
 }
 
 function renderTechTree() {
+  // Détecter le type d'item à partir de son nom
+  function inferType(name) {
+    const n = name.toLowerCase();
+    if (/selle|harnais|gants|collier|pistolet-mitrailleur|lance-|minigun|bandeau|anneau/.test(n)) return 'monture';
+    if (/armure|heaume|casque|vêtement|bouclier|bottes|ceinture|planeur|parachute|habits/.test(n)) return 'armure';
+    if (/fusil|pistolet|arbalète|arc|lance|batte|katana|épée|matraque|détecteur|canon|gatling/.test(n)) return 'arme';
+    if (/sphère|méga sphère|giga sphère|téra sphère|ultra sphère|sphère légendaire|sphère ultime|chaîne de production de sphères|usine de sphères/.test(n)) return 'sphère';
+    return 'structure';
+  }
+
+  function inferIcon(name) {
+    const n = name.toLowerCase();
+    if (/selle/.test(n)) return '🐉';
+    if (/harnais|gants|collier|bandeau/.test(n)) return '🎽';
+    if (/armure|casque|heaume|vêtement/.test(n)) return '🛡️';
+    if (/bouclier/.test(n)) return '🛡️';
+    if (/bottes/.test(n)) return '👢';
+    if (/fusil|pistolet-mitrailleur|pistolet|mitrailleuse|gatling/.test(n)) return '🔫';
+    if (/lance-fusées|lance-missiles|lance-grenades|lance-flammes/.test(n)) return '🚀';
+    if (/arc|arbalète/.test(n)) return '🏹';
+    if (/épée|katana|lance|batte/.test(n)) return '⚔️';
+    if (/sphère/.test(n)) return '🎯';
+    if (/fonderie|fournaise/.test(n)) return '🔥';
+    if (/ferme|ranch|plantation/.test(n)) return '🌾';
+    if (/incubateur/.test(n)) return '🥚';
+    if (/table|établi|chaîne|usine/.test(n)) return '🏭';
+    if (/coffre|boîte|silo|stockage/.test(n)) return '📦';
+    if (/planeur|parachute/.test(n)) return '🪂';
+    if (/grenade|mine/.test(n)) return '💣';
+    if (/générateur|énergie/.test(n)) return '⚡';
+    if (/lit|chambre/.test(n)) return '🛏️';
+    if (/canne à pêche|bassin de pêche/.test(n)) return '🎣';
+    if (/condensateur/.test(n)) return '✨';
+    if (/statue/.test(n)) return '🗿';
+    if (/autel/.test(n)) return '🏛️';
+    if (/polymère|fibre|plastacier|hexolite/.test(n)) return '🧪';
+    return '🔧';
+  }
+
+  const TYPE_LABELS = {
+    all:'TOUT', structure:'🏗️ Structures', arme:'⚔️ Armes',
+    armure:'🛡️ Armures', monture:'🐉 Montures', sphère:'🎯 Sphères',
+  };
+
   document.getElementById('tech-tree').innerHTML = TECH_TREE.map(lvl => {
-    const items = lvl.items.filter(i =>
-      (state.techFilter.type === 'all' || i.type === state.techFilter.type) &&
-      (!state.techFilter.search || i.name.toLowerCase().includes(state.techFilter.search))
-    );
-    if (!items.length) return '';
+    // Normaliser les items en objets
+    const normalized = (lvl.items || []).map(i => {
+      if (typeof i === 'string') {
+        return { name: i, icon: inferIcon(i), type: inferType(i) };
+      }
+      return { name: i.name || i, icon: i.icon || inferIcon(i.name||''), type: i.type || inferType(i.name||'') };
+    });
+
+    const filtered = normalized.filter(i => {
+      const matchType   = state.techFilter.type === 'all' || i.type === state.techFilter.type;
+      const matchSearch = !state.techFilter.search || i.name.toLowerCase().includes(state.techFilter.search);
+      return matchType && matchSearch;
+    });
+
+    if (!filtered.length) return '';
+
+    const preview = filtered.slice(0, 2).map(i => `${i.icon} ${i.name}`).join(' · ');
+    const extra   = filtered.length > 2 ? `…` : '';
+
     return `<div class="tech-lvl open">
-      <div class="tech-lvl-hdr" onclick="this.parentElement.classList.toggle('open');this.parentElement.querySelector('.tech-lvl-arrow').textContent=this.parentElement.classList.contains('open')?'›':'›'">
-        <span class="tech-lvl-num">Niv. ${lvl.lvl}</span>
+      <div class="tech-lvl-hdr" onclick="this.parentElement.classList.toggle('open')">
+        <span class="tech-lvl-num">Niv. ${lvl.lv || lvl.lvl}</span>
         <span class="tech-pts">${lvl.pts} pt${lvl.pts > 1 ? 's' : ''}</span>
-        <span class="tech-lvl-title">${items.slice(0, 2).map(i => i.icon + ' ' + i.name).join(' · ')}${items.length > 2 ? '…' : ''}</span>
-        <span class="tech-lvl-count">${items.length} tech</span>
-        <span class="tech-lvl-arrow">›</span>
+        <span class="tech-lvl-title">${preview}${extra}</span>
+        <span class="tech-lvl-count">${filtered.length} tech ›</span>
       </div>
       <div class="tech-lvl-body">
-        ${items.map(i => `<div class="tech-item">
-          <div class="tech-item-hdr">${i.icon} <span class="tech-item-name">${i.name}</span>
-            <span class="tech-type-badge badge-${i.type}">${i.type}</span></div>
-          <div class="tech-recipe">${i.recipe}</div>
-          ${i.desc ? `<div class="tech-item-desc">${i.desc}</div>` : ''}
-        </div>`).join('')}
+        ${filtered.map(i => `
+          <div class="tech-item">
+            <span class="tech-icon">${i.icon}</span>
+            <span class="tech-name">${i.name}</span>
+            <span class="tech-type-badge">${TYPE_LABELS[i.type] || i.type}</span>
+          </div>`).join('')}
       </div>
     </div>`;
   }).join('');
 }
 
 function renderRecipes() {
-  document.getElementById('recipes-list').innerHTML = RECIPES.map(r => `
+  document.getElementById('recipes-list').innerHTML = RECIPES.map(r => {
+    // Normaliser : supporte {station/via} et {ing/ingredients}
+    const station     = r.station || r.via || '';
+    const ingredients = r.ing
+      ? r.ing.map(i => `${i.q}× ${i.n}`)
+      : (r.ingredients || []);
+    const note = r.note || '';
+
+    return `
     <div class="recipe-card">
-      <div class="recipe-name">${r.icon} ${r.name}</div>
-      <div class="recipe-station">${r.station}</div>
-      ${r.note ? `<div class="recipe-note">${r.note}</div>` : ''}
-      <div class="recipe-ing">${r.ing.map(i => `
-        <div class="recipe-row">
-          <span>${i.n}</span>
-          <span class="recipe-qty">×${i.q}</span>
-        </div>`).join('')}
+      <div class="recipe-name">${r.icon || '🔧'} ${r.name}</div>
+      <div class="recipe-station">📍 ${station}</div>
+      ${note ? `<div class="recipe-note">💡 ${note}</div>` : ''}
+      <div class="recipe-ing">
+        ${ingredients.map(ing => {
+          const [qty, ...nameParts] = typeof ing === 'string'
+            ? ing.split('×').map(s => s.trim())
+            : [ing.q, ing.n];
+          const matName = nameParts.length ? nameParts.join(' ').trim() : qty;
+          const matQty  = nameParts.length ? qty : '';
+          return `<div class="recipe-row">
+            <span>${matName}</span>
+            ${matQty ? `<span class="recipe-qty">×${matQty}</span>` : ''}
+          </div>`;
+        }).join('')}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderPostes() {
@@ -921,63 +994,110 @@ function renderTours() {
 }
 
 function renderRaids() {
+  const EL_COLORS_R = {
+    fire:'#FF6B35',water:'#4FC3F7',electric:'#FFD54F',
+    dark:'#7B5EA7',neutral:'#9E9E9E',ice:'#80DEEA',
+    dragon:'#6C4CF2',grass:'#66BB6A',ground:'#A1887F',
+  };
+  const RAID_TIPS = {
+    'Bellanoir':        ['Équipe recommandée : Pals avec passives Legend + Musclehead.','Utilise les piliers pour éviter les AoE.','Lv 30+ requis.'],
+    'Bellanoir Libero': ['Version hardcore — groupe de 4 joueurs conseillé.','Pals endgame minimum (Tier A+) nécessaires.','Slabs condensés via donjons difficiles.'],
+    'Blazamut Ryu':     ['Pals Eau ou Dragon contre Feu.','Blazamut Ryu attaque plus vite que Blazamut normal.','Lv 50+ conseillé.'],
+    'Xenolord':         ['4× Fragments de Slab Xeno dans les donjons de Feybreak.','Pals Dragon + Glace contre Ténèbres.','Niveau 60 requis. Boss le plus dur du jeu.'],
+    'Moon Lord':        ['Collab Terraria — boss aquatique massif.','Pals Électricité conseillés.','Sceau Céleste obtenu en progressant dans Terraria.'],
+    'Hartalis':         ['Home Sweet Home — boss niveau 65.','Armures V1/V2 en récompense.','Pals Feu ou Ténèbres.'],
+  };
+
   document.getElementById('raids-list').innerHTML = RAIDS.map(r => {
-    const palObj = PALS.find(p => p.name === r.name || p.name === r.name.replace(' Libero','').replace(' Ryu',''));
+    const elColor = EL_COLORS_R[r.el] || '#888';
+    const palObj  = PALS.find(p => p.name === r.name || r.name.startsWith(p.name));
     const bossImg = palImg(r.name, 64) || (palObj ? palImg(palObj.name, 64) : '');
-    const EL_COLORS2 = {fire:'#FF6B35',water:'#4FC3F7',electric:'#FFD54F',dark:'#7B5EA7',neutral:'#9E9E9E',ice:'#80DEEA'};
-    const elColor2 = EL_COLORS2[r.el] || '#888';
+    const tips    = r.tips || RAID_TIPS[r.name] || [];
+    const req     = r.req || r.mat || '—';
+    const src     = r.src || '';
+    const reward  = r.reward || '';
+    const note    = r.note || '';
+    const elIcon  = elIconImg(r.el, 16) || '';
+    const diff    = r.diff || (r.lvl >= 55 ? '★★★★★' : r.lvl >= 45 ? '★★★★' : r.lvl >= 35 ? '★★★' : '★★');
+
     return `
-    <div class="raid-card" style="border-left:4px solid ${elColor2}">
-      <div style="display:flex;gap:.75rem;align-items:flex-start;margin-bottom:.75rem">
-        ${bossImg}
-        <div>
-          <div class="raid-hdr" style="margin-bottom:.25rem">
-            <span class="raid-name">${r.name}</span>
+    <div class="raid-card" style="border-left:4px solid ${elColor}">
+      <div style="display:flex;gap:.85rem;align-items:flex-start;margin-bottom:.85rem">
+        <div style="flex-shrink:0">${bossImg}</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.3rem">
+            <span style="font-family:var(--ff-d);font-size:1.05rem;font-weight:700">${r.name}</span>
+            <span style="font-family:var(--ff-m);font-size:.62rem;padding:.1rem .4rem;border-radius:4px;background:${elColor};color:${['#FFD54F','#80DEEA'].includes(elColor)?'#000':'#fff'}">${elIcon} ${r.el}</span>
+            <span style="font-family:var(--ff-m);font-size:.62rem;color:var(--coral)">Lv ${r.lvl}</span>
           </div>
-      <div class="raid-body">
-        <div class="raid-mat">📦 <strong>Matériaux requis :</strong> ${r.mat}<br><em style="font-size:.75rem;color:var(--ink-f)">Source : ${r.src}</em></div>
-        <p class="raid-desc">${r.desc}</p>
-        <div class="raid-compo"><div class="raid-ttl">Composition recommandée</div>
-          ${r.compo.map(p => `<div class="raid-pal-row"><strong>${p.pal}</strong><span class="raid-role">${p.role}</span></div>`).join('')}
+          <div style="font-size:.78rem;margin-bottom:.3rem">
+            <strong>📦 Invocation :</strong> ${req}
+          </div>
+          ${src ? `<div style="font-size:.7rem;color:var(--ink-f);margin-bottom:.25rem"><em>Source : ${src}</em></div>` : ''}
+          ${note ? `<div style="font-size:.72rem;color:var(--lagoon);margin-bottom:.25rem">ℹ️ ${note}</div>` : ''}
+          <div style="font-size:.75rem;color:var(--sun);font-weight:700">🎁 ${reward}</div>
         </div>
-        <div class="raid-tips">${r.tips.map(t => `<div class="raid-tip">▸ ${t}</div>`).join('')}</div>
-        <div class="raid-reward">🎁 ${r.reward}</div>
       </div>
+      ${tips.length ? `
+        <div style="border-top:var(--bdr);padding-top:.65rem">
+          ${tips.map(t => `<div style="font-size:.72rem;color:var(--ink-s);margin-bottom:.2rem;padding-left:.5rem;border-left:2px solid ${elColor}">▸ ${t}</div>`).join('')}
+        </div>` : ''}
+      ${palObj ? `<button class="btn btn-ghost btn-sm" onclick="openModal('${palObj.id}')" style="margin-top:.5rem;font-size:.65rem">Voir fiche ${palObj.name}</button>` : ''}
     </div>`;
   }).join('');
 }
 
 function renderLegendaires() {
+  const EL_COLORS_L = {
+    fire:'#FF6B35',water:'#4FC3F7',electric:'#FFD54F',
+    dark:'#7B5EA7',neutral:'#9E9E9E',ice:'#80DEEA',
+    dragon:'#6C4CF2',grass:'#66BB6A',ground:'#A1887F',
+  };
+
   document.getElementById('leg-list').innerHTML = LEGENDAIRES.map((l, i) => {
-    const palObj = PALS.find(p => p.name === l.name);
-    const img = palImg(l.name, 80);
+    // Normaliser : supporte ancien format {el:[], elColor:[]} et nouveau {el:'ice', loc, note}
+    const elArr   = Array.isArray(l.el) ? l.el : [l.el].filter(Boolean);
+    const palObj  = PALS.find(p => p.name === l.name);
+    const img     = palImg(l.name, 80);
+    const stats   = palObj || {};
+    const note    = l.note || l.desc || '';
+
     return `
     <div class="leg-card" style="animation-delay:${i * 60}ms">
-      <div class="leg-hdr" style="display:flex;align-items:flex-start;gap:.85rem">
+      <div style="display:flex;align-items:flex-start;gap:.85rem;margin-bottom:.85rem">
         ${img}
-        <div>
-          <div class="leg-els">${l.el.map((e, j) => `<span class="leg-el-chip" style="background:${l.elColor?.[j]||'#888'};color:#fff">${elIconImg(e,14)||EL[e]?.icon||''} ${EL[e]?.name||e}</span>`).join('')}</div>
-          <div class="leg-name">${l.name}</div>
+        <div style="flex:1">
+          <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.3rem">
+            ${elArr.map(e => {
+              const color = EL_COLORS_L[e] || '#888';
+              return `<span style="background:${color};color:${['#FFD54F','#80DEEA'].includes(color)?'#000':'#fff'};font-size:.65rem;padding:.1rem .4rem;border-radius:4px;font-family:var(--ff-m);font-weight:700">${elIconImg(e,13)||''} ${EL[e]?.name||e}</span>`;
+            }).join('')}
+          </div>
+          <div style="font-family:var(--ff-d);font-size:1.2rem;font-weight:700;margin-bottom:.25rem">${l.name}</div>
+          <div style="font-size:.72rem;color:var(--ink-f)">📍 ${l.loc || ''}</div>
         </div>
       </div>
-      <div class="leg-body">
-        <div class="leg-diff">${l.diff}</div>
-        <div class="leg-stats-row">
-          <div class="leg-stat-box"><div class="leg-stat-lbl">HP</div><div class="leg-stat-val" style="color:var(--coral)">${l.hp}</div></div>
-          <div class="leg-stat-box"><div class="leg-stat-lbl">ATQ</div><div class="leg-stat-val" style="color:#FF8800">${l.atk}</div></div>
-          <div class="leg-stat-box"><div class="leg-stat-lbl">DEF</div><div class="leg-stat-val" style="color:var(--lagoon)">${l.def}</div></div>
-          <div class="leg-stat-box"><div class="leg-stat-lbl">VIT</div><div class="leg-stat-val" style="color:var(--mint-d)">${l.spd}</div></div>
-        </div>
-        <div class="leg-loc">📍 <strong>Localisation :</strong> ${l.loc}</div>
-        <div class="leg-tips">${l.tips.map(t => `<div class="leg-tip">▸ ${t}</div>`).join('')}</div>
-        ${l.passives ? `<div style="font-family:var(--ff-m);font-size:.72rem;color:var(--mint-d);font-weight:700">⭐ ${l.passives.join(' · ')}</div>` : ''}
-        ${palObj ? `<button class="btn btn-ghost btn-sm" onclick="openModal('${palObj.id}')" style="margin-top:.5rem;font-size:.65rem">Voir fiche ${palObj.name}</button>` : ''}
-      </div>
+
+      ${stats.hp ? `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin-bottom:.75rem">
+        ${[['❤️','HP',stats.hp,'var(--coral)'],['⚔️','ATK',stats.atk,'#FF8800'],['🛡️','DEF',stats.def,'var(--lagoon)'],['💨','Vitesse',stats.spd,'var(--mint)']].map(([ic,lb,vl,cl]) => `
+          <div style="text-align:center;padding:.4rem;background:var(--paper-d);border-radius:6px;border:var(--bdr)">
+            <div style="font-size:.65rem;color:var(--ink-f)">${ic} ${lb}</div>
+            <div style="font-family:var(--ff-m);font-weight:800;font-size:.85rem;color:${cl}">${vl||'—'}</div>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${note ? `<p style="font-size:.78rem;color:var(--ink-s);line-height:1.5;margin-bottom:.5rem">${note}</p>` : ''}
+
+      ${l.tips ? `<div>${(Array.isArray(l.tips)?l.tips:[l.tips]).map(t=>`<div style="font-size:.72rem;color:var(--ink-s);padding-left:.5rem;border-left:2px solid var(--sun);margin-bottom:.2rem">▸ ${t}</div>`).join('')}</div>` : ''}
+
+      ${l.passives ? `<div style="font-family:var(--ff-m);font-size:.72rem;color:var(--mint-d);font-weight:700;margin-top:.5rem">⭐ ${l.passives.join(' · ')}</div>` : ''}
+
+      ${palObj ? `<button class="btn btn-ghost btn-sm" onclick="openModal('${palObj.id}')" style="margin-top:.6rem;font-size:.65rem">Voir fiche ${palObj.name}</button>` : ''}
     </div>`;
   }).join('');
 }
 
-/* ── RECHERCHE GLOBALE ── */
 function onGlobalSearch(e) {
   const q = e.target.value.toLowerCase().trim();
   const box = document.getElementById('global-results');
@@ -1757,129 +1877,188 @@ function onSaveAnalyzed(analysis) {
 }
 
 /* ══════════════════════════════════════════════════
-   PAGE MAPS — Points d’intérêt + filtres
+   PAGE MAPS — Carte Leaflet interactive
 ══════════════════════════════════════════════════ */
 
-const MAP_POI = [
-  // ── BOSS ALPHA ──
-  {cat:'alpha', icon:'⭐', name:'Anubis (Alpha)', pal:'Anubis', lv:47, coord:'122, -462', note:'Sanctuaire du Désert. Boss Terre le plus utile du jeu — Artisanat Lv4 + Minage Lv3.'},
-  {cat:'alpha', icon:'⭐', name:'Jetragon (Alpha)', pal:'Jetragon', lv:55, coord:'-789, -320', note:'Pic du Dragon, Île Volcanique. Sprint monture 3300 — le plus rapide.'},
-  {cat:'alpha', icon:'⭐', name:'Frostallion (Alpha)', pal:'Frostallion', lv:55, coord:'426, 168', note:'Sommet des neiges éternelles. Meilleure monture volante.'},
-  {cat:'alpha', icon:'⭐', name:'Paladius (Alpha)', pal:'Paladius', lv:55, coord:'447, -671', note:'Plaines Saintes. Légendaire Neutre. Partage spawn avec Necromus.'},
-  {cat:'alpha', icon:'⭐', name:'Necromus (Alpha)', pal:'Necromus', lv:55, coord:'447, -671', note:'Désert des Âmes. Légendaire Ténèbres. Partage spawn avec Paladius.'},
-  {cat:'alpha', icon:'⭐', name:'Lyleen (Alpha)', pal:'Lyleen', lv:49, coord:'-178, 449', note:'Île Oubliée. Légendaire niveau 49 — meilleure Plantation + Pharmacie.'},
-  {cat:'alpha', icon:'⭐', name:'Blazamut (Alpha)', pal:'Blazamut', lv:49, coord:'-569, -482', note:'Île Volcanique. Minage + Allumage Lv4.'},
-  {cat:'alpha', icon:'⭐', name:'Grizzbolt (Alpha)', pal:'Grizzbolt', lv:23, coord:'-113, -408', note:'Collines ventées. Boss de tour mais aussi Alpha accessible tôt.'},
-  {cat:'alpha', icon:'⭐', name:'Mammorest (Alpha)', pal:'Mammorest', lv:38, coord:'-210, -20', note:'Forêt de bambous.'},
-  {cat:'alpha', icon:'⭐', name:'Warsect (Alpha)', pal:'Warsect', lv:38, coord:'205, -55', note:'Collines de la Résurrection.'},
-  {cat:'alpha', icon:'⭐', name:'Shadowbeak (Alpha)', pal:'Shadowbeak', lv:50, coord:'-120, 450', note:'Île de la Désolation.'},
-  {cat:'alpha', icon:'⭐', name:'Orserk (Alpha)', pal:'Orserk', lv:47, coord:'-120, 450', note:'Île de la Désolation.'},
-  {cat:'alpha', icon:'⭐', name:'Quivern (Alpha)', pal:'Quivern', lv:23, coord:'228, -78', note:'Collines de la Résurrection.'},
-  {cat:'alpha', icon:'⭐', name:'Menasting (Alpha)', pal:'Menasting', lv:44, coord:'355, -595', note:'Dunes arides.'},
-  {cat:'alpha', icon:'⭐', name:'Cryolinx (Alpha)', pal:'Cryolinx', lv:43, coord:'426, 131', note:'Montagne glacée.'},
-  {cat:'alpha', icon:'⭐', name:'Digtoise (Alpha)', pal:'Digtoise', lv:30, coord:'187, -283', note:'Plateau du crépuscule.'},
-  {cat:'alpha', icon:'⭐', name:'Kingpaca (Alpha)', pal:'Kingpaca', lv:38, coord:'-124, -197', note:'Collines verdoyantes.'},
-  // Feybreak
-  {cat:'alpha', icon:'⭐', name:'Xenolord (Alpha Raid)', pal:'Xenolord', lv:60, coord:'Feybreak Island', note:'Boss Raid Feybreak. 4× Fragments de Slab Xeno dans les donjons.'},
-  {cat:'alpha', icon:'⭐', name:'Neptilius (Alpha)', pal:'Neptilius', lv:60, coord:'Eaux profondes', note:'Légendaire Eau. Arrosage Lv4. Zone endgame.'},
+// Marqueurs par catégorie avec coordonnées en pixels sur la carte 2048×2048
+// Origine : coin haut-gauche = [-128, 0], coin bas-droit = [0, 128]
+// Conversion : x_jeu → lng, y_jeu → lat (axe Y inversé)
+// La carte officielle Palworld utilise un système de coordonnées centré
 
-  // ── TOURS ──
-  {cat:'tower', icon:'🗼', name:'Tour Syndicat Rayne', boss:'Zoe & Grizzbolt', lv:15, coord:'-99, -418', note:'1ère tour. Pals Terre recommandés. Débloque expédition Verdant Hollow.'},
-  {cat:'tower', icon:'🗼', name:'Tour Alliance Libre Pals', boss:'Lily & Lyleen', lv:30, coord:'-580, 22', note:'Pals Feu. Débloque expédition Moonlit Forest.'},
-  {cat:'tower', icon:'🗼', name:'Tour PAL Moonflowers', boss:'Axel & Orserk', lv:45, coord:'-590, -490', note:'Île Volcanique. Pals Terre + Glace. La plus longue tour.'},
-  {cat:'tower', icon:'🗼', name:'Tour PIDF', boss:'Marcus & Faleris', lv:40, coord:'490, -720', note:'Désert. Pals Eau. Attaques rapides — Faleris est brutal.'},
-  {cat:'tower', icon:'🗼', name:'Tour Frères Flamme Éternelle', boss:'Victor & Shadowbeak', lv:45, coord:'-127, 460', note:'Île de la Désolation. Pals Dragon. La plus difficile.'},
-  {cat:'tower', icon:'🗼', name:'Tour Sakurajima', boss:'Saya & Selyne', lv:50, coord:'Sakurajima Island', note:'Mise à jour Sakurajima.'},
-  {cat:'tower', icon:'🗼', name:'Tour Feybreak', boss:'Bjorn & Bastigor', lv:60, coord:'Feybreak Island SW', note:'Nécessite des Bounty Tokens de boss Feybreak. Pals Feu.'},
+const MAP_MARKERS = [
+  // ── TOURS (7) ──
+  { cat:'tower', name:'Tour Syndicat Rayne',            boss:'Zoe & Grizzbolt',   lv:15, x:33,  y:38,  pal:'Grizzbolt' },
+  { cat:'tower', name:'Tour Free Pal Alliance',          boss:'Lily & Lyleen',     lv:30, x:18,  y:52,  pal:'Lyleen' },
+  { cat:'tower', name:'Tour PAL Moonflowers',            boss:'Axel & Orserk',     lv:45, x:12,  y:75,  pal:'Orserk' },
+  { cat:'tower', name:'Tour PIDF',                       boss:'Marcus & Faleris',  lv:40, x:72,  y:78,  pal:'Faleris' },
+  { cat:'tower', name:'Tour Brothers of the Eternal Pyre', boss:'Victor & Shadowbeak', lv:45, x:30, y:82, pal:'Shadowbeak' },
+  { cat:'tower', name:'Tour Sakurajima',                 boss:'Saya & Selyne',     lv:50, x:85,  y:25,  pal:'Selyne' },
+  { cat:'tower', name:'Tour Feybreak',                   boss:'Bjorn & Bastigor',  lv:60, x:15,  y:20,  pal:'Bastigor' },
 
-  // ── LÉGENDAIRES ──
-  {cat:'legendary', icon:'💎', name:'Jetragon', pal:'Jetragon', lv:55, coord:'-789, -320', note:'Monture la + rapide (sprint 3300). Île Volcanique nord.'},
-  {cat:'legendary', icon:'💎', name:'Frostallion', pal:'Frostallion', lv:55, coord:'426, 168', note:'Meilleure monture volante. Toundra absolue.'},
-  {cat:'legendary', icon:'💎', name:'Paladius', pal:'Paladius', lv:55, coord:'447, -671', note:'Légendaire Neutre. Partage spawn avec Necromus.'},
-  {cat:'legendary', icon:'💎', name:'Necromus', pal:'Necromus', lv:55, coord:'447, -671', note:'Légendaire Ténèbres. Partage spawn avec Paladius.'},
-  {cat:'legendary', icon:'💎', name:'Neptilius', pal:'Neptilius', lv:60, coord:'Eaux profondes endgame', note:'★ NOUVEAU — Arrosage Lv4. Zone endgame.'},
+  // ── LÉGENDAIRES (5) ──
+  { cat:'legendary', name:'Jetragon',    lv:55, x:14,  y:72,  pal:'Jetragon',    note:'Île Volcanique — Pic du Dragon' },
+  { cat:'legendary', name:'Frostallion', lv:55, x:58,  y:15,  pal:'Frostallion', note:'Toundra absolue — Sommet des neiges' },
+  { cat:'legendary', name:'Paladius',    lv:55, x:65,  y:72,  pal:'Paladius',    note:'Plaines Saintes — partage spawn avec Necromus' },
+  { cat:'legendary', name:'Necromus',    lv:55, x:66,  y:74,  pal:'Necromus',    note:'Désert des Âmes — partage spawn avec Paladius' },
+  { cat:'legendary', name:'Neptilius',   lv:60, x:50,  y:90,  pal:'Neptilius',   note:'Eaux profondes endgame' },
 
-  // ── DONJONS RECOMMANDÉS ──
-  {cat:'dungeon', icon:'⛏️', name:'Donjons Collines Ventées', coord:'0, -500 (zone)', note:'Niveau 1-20. Faciles à trouver, parfaits pour débuter. Gumoss, Jolthog à l\'intérieur.'},
-  {cat:'dungeon', icon:'⛏️', name:'Donjons Plateau du Crépuscule', coord:'200, -280 (zone)', note:'Niveau 20-35. Nombreux Alpha en fin de donjon. Digtoise, Tombat.'},
-  {cat:'dungeon', icon:'⛏️', name:'Donjons Dunes Arides', coord:'400, -600 (zone)', note:'Niveau 35-45. Menasting, Anubis. Boss de fin difficiles.'},
-  {cat:'dungeon', icon:'⛏️', name:'Donjons Île Volcanique', coord:'-600, -400 (zone)', note:'Niveau 40-55. Les plus rentables. Blazamut, Orserk en Alpha final.'},
-  {cat:'dungeon', icon:'⛏️', name:'Donjons Feybreak', coord:'Feybreak Island', note:'Niveau 55-65. Fragments de Slab Xeno. Nouveaux Pals Feybreak.'},
-  {cat:'dungeon', icon:'⛏️', name:'Sanctuaires Scellés', coord:'Éparpillés sur la carte', note:'16 sanctuaires. Contiennent les plus gros Alpha (Anubis, Grizzbolt, Shadowbeak…).'},
+  // ── BOSS ALPHA clés (14) ──
+  { cat:'alpha', name:'Anubis',      lv:47, x:63,  y:65, pal:'Anubis',       note:'Sanctuaire — Artisanat Lv4 + Minage Lv3' },
+  { cat:'alpha', name:'Lyleen',      lv:49, x:22,  y:85, pal:'Lyleen',       note:'Île Oubliée — Plantation+Pharmacie Lv3' },
+  { cat:'alpha', name:'Grizzbolt',   lv:23, x:32,  y:40, pal:'Grizzbolt',    note:'Collines ventées' },
+  { cat:'alpha', name:'Mammorest',   lv:38, x:38,  y:50, pal:'Mammorest',    note:'Forêt de bambous' },
+  { cat:'alpha', name:'Blazamut',    lv:49, x:15,  y:68, pal:'Blazamut',     note:'Île Volcanique — Minage+Allumage Lv4' },
+  { cat:'alpha', name:'Shadowbeak',  lv:50, x:28,  y:83, pal:'Shadowbeak',   note:'Île de la Désolation' },
+  { cat:'alpha', name:'Orserk',      lv:47, x:29,  y:84, pal:'Orserk',       note:'Île de la Désolation' },
+  { cat:'alpha', name:'Menasting',   lv:44, x:68,  y:76, pal:'Menasting',    note:'Dunes arides' },
+  { cat:'alpha', name:'Cryolinx',    lv:43, x:60,  y:18, pal:'Cryolinx',     note:'Montagne glacée' },
+  { cat:'alpha', name:'Digtoise',    lv:30, x:50,  y:45, pal:'Digtoise',     note:'Plateau du crépuscule' },
+  { cat:'alpha', name:'Warsect',     lv:38, x:55,  y:43, pal:'Warsect',      note:'Collines de la Résurrection' },
+  { cat:'alpha', name:'Quivern',     lv:23, x:53,  y:41, pal:'Quivern',      note:'Collines de la Résurrection' },
+  { cat:'alpha', name:'Kingpaca',    lv:38, x:40,  y:42, pal:'Kingpaca',     note:'Collines verdoyantes' },
+  { cat:'alpha', name:'Bastigor',    lv:60, x:16,  y:22, pal:'Bastigor',     note:'Feybreak — boss fort' },
 
-  // ── EFFIGIES DE LIFMUNK ──
-  {cat:'effigy', icon:'🗿', name:'Zone Effigies — Collines Ventées', coord:'0, -450 (zone)', note:'~40 effigies. Zone de départ, facile d\'accès.'},
-  {cat:'effigy', icon:'🗿', name:'Zone Effigies — Archipel Brise de Mer', coord:'-200, -600 (zone)', note:'~35 effigies. Sur les falaises côtières. Monture volante recommandée.'},
-  {cat:'effigy', icon:'🗿', name:'Zone Effigies — Désert', coord:'400, -680 (zone)', note:'~50 effigies. Surtout sur les formations rocheuses. Attention à la chaleur.'},
-  {cat:'effigy', icon:'🗿', name:'Zone Effigies — Montagne Glacée', coord:'420, 100 (zone)', note:'~45 effigies. Éparpillées sur les falaises. Équipement froid nécessaire.'},
-  {cat:'effigy', icon:'🗿', name:'Zone Effigies — Île Volcanique', coord:'-600, -450 (zone)', note:'~30 effigies. Pénibles à récupérer. Jetragon recommandé.'},
-  {cat:'effigy', icon:'🗿', name:'Zone Effigies — Sakurajima', coord:'Sakurajima Island', note:'~40 effigies sur la nouvelle île.'},
-  {cat:'effigy', icon:'🗿', name:'Zone Effigies — Feybreak', coord:'Feybreak Island', note:'~60 effigies nouvelles (v0.4+). Nécessite d\'explorer toute l\'île.'},
+  // ── TÉLÉPORTS clés (8) ──
+  { cat:'teleport', name:'Plateau des Bénédictions', x:35, y:38,  note:'Point de départ' },
+  { cat:'teleport', name:'Petit Village',             x:33, y:40,  note:'Marchand permanent' },
+  { cat:'teleport', name:'Désert Desséché',           x:65, y:70,  note:'Accès endgame désert' },
+  { cat:'teleport', name:'Île Volcanique — Sommet',   x:13, y:70,  note:'Proche Jetragon' },
+  { cat:'teleport', name:'Toundra Absolue',            x:57, y:14,  note:'Proche Frostallion' },
+  { cat:'teleport', name:'Île de la Désolation',      x:28, y:82,  note:'Shadowbeak + Orserk' },
+  { cat:'teleport', name:'Oil Rig (Syndicat Rayne)',  x:42, y:90,  note:'Ressources endgame Lv55' },
+  { cat:'teleport', name:'Sanctuaire du Désert',      x:64, y:64,  note:'Anubis Alpha nearby' },
 
-  // ── TÉLÉPORTS CLÉS ──
-  {cat:'teleport', icon:'⚡', name:'Plateau des Bénédictions', coord:'-31, -499', note:'Téléport de départ. Accès rapide aux premières ressources.'},
-  {cat:'teleport', icon:'⚡', name:'Petit Village', coord:'-110, -482', note:'Marchand permanent. Acheter des Pals et des blueprints.'},
-  {cat:'teleport', icon:'⚡', name:'Désert Desséché', coord:'351, -630', note:'Accès rapide au désert endgame et à Paladius/Necromus.'},
-  {cat:'teleport', icon:'⚡', name:'Sommet du Dragon', coord:'-789, -300', note:'Île Volcanique. Téléport le plus proche de Jetragon.'},
-  {cat:'teleport', icon:'⚡', name:'Toundra Absolue', coord:'420, 180', note:'Proche de Frostallion. Équipement froid obligatoire.'},
-  {cat:'teleport', icon:'⚡', name:'Île de la Désolation', coord:'-120, 440', note:'Shadowbeak + Orserk en Alpha. Équipement Tier 3 minimum.'},
+  // ── DONJONS zones (8) ──
+  { cat:'dungeon', name:'Donjons Collines Ventées',   x:35, y:37, note:'Niv 1-20 · Faciles' },
+  { cat:'dungeon', name:'Donjons Plateau Crépuscule', x:50, y:44, note:'Niv 20-35 · Digtoise, Tombat' },
+  { cat:'dungeon', name:'Donjons Dunes Arides',        x:67, y:74, note:'Niv 35-45 · Menasting, Anubis' },
+  { cat:'dungeon', name:'Donjons Île Volcanique',      x:14, y:69, note:'Niv 40-55 · Les plus rentables' },
+  { cat:'dungeon', name:'Donjons Île Désolation',     x:29, y:83, note:'Niv 45-55 · Orserk, Shadowbeak' },
+  { cat:'dungeon', name:'Donjons Feybreak',            x:15, y:21, note:'Niv 55-65 · Fragments Slab Xeno' },
+  { cat:'dungeon', name:'Sanctuaires Scellés ×16',    x:45, y:60, note:'Grands Alpha endgame' },
+  { cat:'dungeon', name:'Donjons Sakurajima',          x:85, y:24, note:'Niv 50+ · Nouveaux Pals' },
 
-  // ── SPOTS DE PÊCHE ──
-  {cat:'fishing', icon:'🎣', name:'Spot de Pêche Maître — Île Éternelle Été', coord:'-408, -825', note:'Pals avec passive Lurker. Nécessaire pour succès "Lurker Hunter".'},
-  {cat:'fishing', icon:'🎣', name:'Spot de Pêche Maître — Côte Ouest', coord:'920, 208', note:'Deuxième spot confirmé pour les Lurkers.'},
-  {cat:'fishing', icon:'🎣', name:'Spots de Pêche Archipel Brise de Mer', coord:'-200, -580 (zone)', note:'Nombreux spots pour débuter. Kelpsea et Celaray fréquents.'},
-  {cat:'fishing', icon:'🎣', name:'Spots de Pêche Tides of Terraria', coord:'Nouvelles îles Tropicales', note:'Nouveaux Pals aquatiques de la collab Terraria. Bassin de pêche recommandé.'},
+  // ── PÊCHE (4) ──
+  { cat:'fishing', name:'Spot Maître — Île Été',    x:20, y:88, note:'Lurker Hunter · Canne max requise' },
+  { cat:'fishing', name:'Spot Maître — Côte Ouest', x:78, y:55, note:'Deuxième spot Lurker' },
+  { cat:'fishing', name:'Spots Archipel Brise',     x:25, y:45, note:'Kelpsea, Celaray · Débutant' },
+  { cat:'fishing', name:'Spots Terraria',            x:55, y:88, note:'Nouveaux Pals aquatiques' },
 ];
 
-let currentMapFilter = 'all';
+const CAT_CONFIG = {
+  tower:     { color:'#FF6B35', emoji:'🗼', label:'Tours' },
+  legendary: { color:'#FFD700', emoji:'💎', label:'Légendaires' },
+  alpha:     { color:'#FF4444', emoji:'⭐', label:'Boss Alpha' },
+  dungeon:   { color:'#00BFFF', emoji:'⛏️', label:'Donjons' },
+  teleport:  { color:'#00E34A', emoji:'⚡', label:'Téléports' },
+  fishing:   { color:'#4FC3F7', emoji:'🎣', label:'Pêche' },
+};
+
+let _palMap = null;
+let _mapLayers = {};
+let _activeLayers = new Set(['tower','alpha','legendary','dungeon','teleport','fishing']);
 
 function initMaps() {
-  renderMapPOI('all');
+  // Attendre que Leaflet soit chargé
+  if (typeof L === 'undefined') {
+    setTimeout(initMaps, 200);
+    return;
+  }
+  if (_palMap) {
+    _palMap.invalidateSize();
+    return;
+  }
+
+  // Dimensions de la carte image (2048×2048)
+  const W = 2048, H = 2048;
+
+  // Initialiser Leaflet en mode CRS.Simple (pas de projection géographique)
+  _palMap = L.map('palworld-map', {
+    crs: L.CRS.Simple,
+    minZoom: -2,
+    maxZoom: 3,
+    zoomSnap: 0.5,
+    attributionControl: false,
+  });
+
+  // Image de la carte officielle Palworld (tile CDN public)
+  // On utilise une image PNG de la carte depuis un CDN public
+  const bounds = [[0, 0], [H, W]];
+  L.imageOverlay(
+    'https://raw.githubusercontent.com/Auxilor/eco-palworld-data/main/map/map.png',
+    bounds,
+    { opacity: 1, errorOverlayUrl: '' }
+  ).addTo(_palMap);
+
+  // Fallback : fond coloré avec grille si l'image ne charge pas
+  _palMap.setView([H/2, W/2], -1);
+
+  // Créer les layers par catégorie
+  Object.keys(CAT_CONFIG).forEach(cat => {
+    _mapLayers[cat] = L.layerGroup().addTo(_palMap);
+  });
+
+  // Ajouter les marqueurs
+  MAP_MARKERS.forEach(m => {
+    if (!_mapLayers[m.cat]) return;
+
+    // Convertir les % en pixels sur la carte
+    const px = m.x / 100 * W;
+    const py = (1 - m.y / 100) * H;
+
+    const cfg = CAT_CONFIG[m.cat];
+    const palObj = m.pal ? (typeof PALS !== 'undefined' ? PALS.find(p => p.name === m.pal) : null) : null;
+
+    // Icône personnalisée
+    const iconHtml = `
+      <div style="
+        width:36px;height:36px;border-radius:50%;
+        background:${cfg.color};border:2.5px solid #fff;
+        display:flex;align-items:center;justify-content:center;
+        font-size:16px;box-shadow:0 2px 6px rgba(0,0,0,.5);
+        cursor:pointer;transition:transform .15s;
+      " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${cfg.emoji}</div>`;
+
+    const icon = L.divIcon({
+      html: iconHtml,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+      className: '',
+    });
+
+    const popupContent = `
+      <div style="font-family:system-ui,sans-serif;min-width:180px">
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:.3rem">${m.name}</div>
+        ${m.boss ? `<div style="font-size:.78rem;color:#555;margin-bottom:.25rem">👑 ${m.boss}</div>` : ''}
+        ${m.lv ? `<div style="font-size:.72rem;background:${cfg.color};color:#fff;display:inline-block;padding:.1rem .4rem;border-radius:4px;margin-bottom:.25rem;font-weight:700">Lv ${m.lv}</div>` : ''}
+        ${m.note ? `<div style="font-size:.75rem;color:#666;margin-top:.25rem">${m.note}</div>` : ''}
+        ${palObj ? `<button onclick="navigate('pals');setTimeout(()=>openModal('${palObj.id}'),200)"
+          style="margin-top:.4rem;font-size:.7rem;padding:.25rem .6rem;border-radius:4px;border:1px solid #ccc;background:#f5f5f5;cursor:pointer">
+          Voir fiche ${palObj.name}
+        </button>` : ''}
+      </div>`;
+
+    L.marker([py, px], { icon })
+      .bindPopup(popupContent, { maxWidth: 250 })
+      .addTo(_mapLayers[m.cat]);
+  });
 }
 
-function setMapFilter(filter, btn) {
-  currentMapFilter = filter;
-  document.querySelectorAll('.map-filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderMapPOI(filter);
+function toggleLayer(cat, btn) {
+  btn.classList.toggle('active');
+  if (_activeLayers.has(cat)) {
+    _activeLayers.delete(cat);
+    if (_palMap && _mapLayers[cat]) _palMap.removeLayer(_mapLayers[cat]);
+  } else {
+    _activeLayers.add(cat);
+    if (_palMap && _mapLayers[cat]) _mapLayers[cat].addTo(_palMap);
+  }
 }
 
-function renderMapPOI(filter) {
-  const filtered = filter === 'all' ? MAP_POI : MAP_POI.filter(p => p.cat === filter);
+// Ancienne fonction gardée pour compatibilité
+function setMapFilter() {}
+function renderMapPOI() {}
 
-  const labels = {
-    all:'Tous', alpha:'Boss Alpha', dungeon:'Donjons',
-    tower:'Tours de Boss', legendary:'Pals Légendaires',
-    effigy:'Zones d\'Effigies', teleport:'Téléports Clés', fishing:'Spots de Pêche'
-  };
-
-  document.getElementById('map-poi-title').textContent = `📍 Points d\'intérêt — ${labels[filter] || filter} (${filtered.length})`;
-
-  const catColors = {
-    alpha:'var(--sun)', tower:'var(--coral)', legendary:'var(--purple)',
-    dungeon:'var(--lagoon)', effigy:'var(--mint)', teleport:'var(--electric)',
-    fishing:'var(--water)'
-  };
-
-  document.getElementById('map-poi-grid').innerHTML = filtered.map(poi => {
-    const palObj = poi.pal ? PALS.find(p => p.name === poi.pal) : null;
-    const elIcons = palObj ? palObj.el.map(e => EL[e]?.icon || '').join('') : '';
-    const color = catColors[poi.cat] || 'var(--ink-f)';
-
-    return `
-    <div class="map-poi-card" style="border-left:3px solid ${color}">
-      <h4>
-        ${poi.icon} ${poi.name}
-        ${poi.lv ? `<span class="map-poi-lv">Lv ${poi.lv}</span>` : ''}
-        ${elIcons ? `<span style="margin-left:.35rem;font-size:1rem">${elIcons}</span>` : ''}
-      </h4>
-      ${poi.boss ? `<p style="font-size:.72rem;color:${color};font-weight:700">👤 ${poi.boss}</p>` : ''}
-      <p>${poi.note}</p>
-      <div class="map-poi-coords">📍 ${poi.coord}</div>
-      ${palObj ? `<button class="btn btn-ghost btn-sm" style="margin-top:.5rem;font-size:.65rem" onclick="openModal('${palObj.id}')">Voir fiche ${palObj.name}</button>` : ''}
-    </div>`;
-  }).join('');
-}
 
 /* ══════════════════════════════════════════════════
    CALCULATEUR INVERSÉ — Trouver les parents d'un Pal
