@@ -327,7 +327,7 @@ function renderComparateur() {
     ${rows}
     <div style="text-align:center;margin-top:1.25rem;padding:1rem;background:${winner==='Égalité'?'var(--paper-d)':'rgba(255,208,0,.2)'};border-radius:var(--r-md);border:var(--bdr)">
       <div style="font-size:1.1rem;font-weight:800;font-family:var(--ff-d)">
-        ${winner === 'Égalité' ? '🤝 Égalité parfaite !' : `🏆 ${winner} l'emporte (${Math.max(aWins,bWins)}/5)`}
+        ${winner === 'Égalité' ? '🤝 Égalité parfaite !' : `🏆 ${winner} l’emporte (${Math.max(aWins,bWins)}/5)`}
       </div>
     </div>`;
 }
@@ -405,7 +405,7 @@ function resetChecklist() {
 
 /* ── BREEDING PAGE ── */
 function initBreeding() {
-  // Par défaut sur l'onglet mécanique — déjà visible
+  // Par défaut sur l’onglet mécanique — déjà visible
   renderCombos('all');
   renderPassives();
   populateCalcSelects();
@@ -714,7 +714,7 @@ function onSaveFileSelected(e) {
         document.getElementById('save-status').innerHTML = `
           <div class="save-error">
             ⚠️ Aucun Pal détecté dans ce fichier.<br>
-            <small>Assure-toi d'importer <strong>Level.sav</strong> ou ton fichier joueur
+            <small>Assure-toi d’importer <strong>Level.sav</strong> ou ton fichier joueur
             depuis <code>%LOCALAPPDATA%\\Pal\\Saved\\SaveGames\\</code></small>
           </div>`;
         return;
@@ -848,7 +848,7 @@ const ACHIEVEMENTS = [
     desc:'Capturez votre premier Pal.',
     detect:(a) => a.capturedNames.size >= 1,
     threshold:1, manual:false,
-    tip:'Auto-détecté dès qu'un Pal est trouvé dans ta sauvegarde.'
+    tip:'Auto-détecté dès qu’un Pal est trouvé dans ta sauvegarde.'
   },
   {
     id:'ach_10', cat:'Paldeck', icon:'🟢', update:'EA',
@@ -917,9 +917,9 @@ const ACHIEVEMENTS = [
   {
     id:'ach_oilrig', cat:'Exploration', icon:'🛢️', update:'EA',
     name:'Conqueror of the Sea',
-    desc:'Capturer l'Oil Rig (Syndicat Rayne — niveau 55).',
+    desc:'Capturer l’Oil Rig (Syndicat Rayne — niveau 55).',
     detect:(a) => false, manual:true,
-    tip:'Oil Rig au sud-est de l'île des Marais. Arrive en vol avec Jetragon.'
+    tip:'Oil Rig au sud-est de l’île des Marais. Arrive en vol avec Jetragon.'
   },
 
   // ════════════════════════════════════════════
@@ -983,7 +983,7 @@ const ACHIEVEMENTS = [
     name:'Trail of the Castaway',
     desc:'Collectez 40 Notes éparpillées dans le monde.',
     detect:(a) => false, manual:true,
-    tip:'Les Notes se trouvent près des monuments, tours et zones d'intérêt.'
+    tip:'Les Notes se trouvent près des monuments, tours et zones d’intérêt.'
   },
   {
     id:'ach_effigies', cat:'Collection', icon:'🗿', update:'Sakurajima',
@@ -995,9 +995,9 @@ const ACHIEVEMENTS = [
   {
     id:'ach_rank1', cat:'Progression', icon:'⬆️', update:'Sakurajima',
     name:'All for One',
-    desc:'Maximisez le rang d'un Pal (4 fusions dans le Condenseur).',
+    desc:'Maximisez le rang d’un Pal (4 fusions dans le Condenseur).',
     detect:(a) => a.capturedNames.size >= 10, manual:true,
-    tip:'Fusionne 4× le même Pal dans le Condenseur d'essence Pal.'
+    tip:'Fusionne 4× le même Pal dans le Condenseur d’essence Pal.'
   },
   {
     id:'ach_rank5', cat:'Progression', icon:'🏅', update:'Sakurajima',
@@ -1018,14 +1018,14 @@ const ACHIEVEMENTS = [
     name:'Champion of the Palpagos Islands',
     desc:'Vaincre 6 Tours de boss en mode Difficile.',
     detect:(a) => false, manual:true,
-    tip:'Il faut battre les 6 tours d'affilée en mode Hard. Nécessite endgame complet.'
+    tip:'Il faut battre les 6 tours d’affilée en mode Hard. Nécessite endgame complet.'
   },
   {
     id:'ach_spheres', cat:'Craft', icon:'🟢', update:'Sakurajima',
     name:'Sphere Craftsman',
     desc:'Craftez 2 000 Sphères Pal (tous types confondus).',
     detect:(a) => false, manual:true,
-    tip:'Automatise avec Usine d'assemblage + Pals Travaux manuels.'
+    tip:'Automatise avec Usine d’assemblage + Pals Travaux manuels.'
   },
   {
     id:'ach_ingots', cat:'Craft', icon:'⚙️', update:'Sakurajima',
@@ -1039,7 +1039,7 @@ const ACHIEVEMENTS = [
     name:'Blood and Iron',
     desc:'Craftez 20 000 munitions (tous types confondus).',
     detect:(a) => false, manual:true,
-    tip:'Automatise avec Usine d'assemblage. Craft des balles basiques en masse.'
+    tip:'Automatise avec Usine d’assemblage. Craft des balles basiques en masse.'
   },
   {
     id:'ach_raid1', cat:'Raids', icon:'💀', update:'Sakurajima',
@@ -1083,7 +1083,7 @@ const ACHIEVEMENTS = [
   {
     id:'ach_chopper', cat:'Exploration', icon:'🚁', update:'Feybreak',
     name:'No Fly Zone',
-    desc:'Vaincre l'hélicoptère d'attaque sur l'Oil Rig de Feybreak (niveau 60).',
+    desc:'Vaincre l’hélicoptère d’attaque sur l’Oil Rig de Feybreak (niveau 60).',
     detect:(a) => false, manual:true,
     tip:'Oil Rig niveau 60, sud-ouest de Feybreak. Apparaît en hackant la cage au sommet.'
   },
@@ -1124,7 +1124,7 @@ const ACHIEVEMENTS = [
     name:'Novice Pal Dispatcher',
     desc:'Effectuez 10 Expéditions de Pals.',
     detect:(a) => false, manual:true,
-    tip:'Station d'Expédition (niveau 15). Envoie des Pals sur des missions hors-base.'
+    tip:'Station d’Expédition (niveau 15). Envoie des Pals sur des missions hors-base.'
   },
   {
     id:'ach_exp2', cat:'Progression', icon:'🗺️', update:'Crossplay v0.5',
@@ -1138,7 +1138,7 @@ const ACHIEVEMENTS = [
     name:'Freshman Surveyor',
     desc:'Découvrez 10 nouvelles zones.',
     detect:(a) => a.level >= 5, manual:true,
-    tip:'Chaque nouvelle zone découverte affiche son nom à l'écran.'
+    tip:'Chaque nouvelle zone découverte affiche son nom à l’écran.'
   },
   {
     id:'ach_survey2', cat:'Exploration', icon:'🔭', update:'Crossplay v0.5',
@@ -1169,7 +1169,7 @@ const ACHIEVEMENTS = [
     name:'Novice Angler',
     desc:'Pêchez 10 Pals.',
     detect:(a) => false, manual:true,
-    tip:'Canne à pêche débloquée au niveau 15 (2 points Tech). Pêche dans n'importe quel plan d'eau.'
+    tip:'Canne à pêche débloquée au niveau 15 (2 points Tech). Pêche dans n’importe quel plan d’eau.'
   },
   {
     id:'ach_fish2', cat:'Pêche', icon:'🎣', update:'Tides of Terraria',
@@ -1188,19 +1188,19 @@ const ACHIEVEMENTS = [
     name:'Lurker Hunter',
     desc:'Pêchez un Pal avec la passive "Lurker" dans un spot de pêche Maître.',
     detect:(a) => false, manual:true,
-    tip:'Spot Maître : Île Éternelle de l'Été (coords -408,-825 ou 920,208). Utilise la meilleure canne.'
+    tip:'Spot Maître : Île Éternelle de l’Été (coords -408,-825 ou 920,208). Utilise la meilleure canne.'
   },
   {
     id:'ach_arena1', cat:'Arène', icon:'🥊', update:'Tides of Terraria',
     name:'Silver Champ',
-    desc:'Atteindre le rang Argent à l'Arène (300 points).',
+    desc:'Atteindre le rang Argent à l’Arène (300 points).',
     detect:(a) => false, manual:true,
     tip:'Arène au sud du Désert Desséché. Bats les adversaires Bronze puis Argent.'
   },
   {
     id:'ach_arena2', cat:'Arène', icon:'🏆', update:'Tides of Terraria',
     name:'Arena Champion',
-    desc:'Atteindre le rang Maître à l'Arène (3 800 points).',
+    desc:'Atteindre le rang Maître à l’Arène (3 800 points).',
     detect:(a) => false, manual:true,
     tip:'Bats The Master encore et encore pour accumuler les points. Pals endgame requis.'
   },
@@ -1255,7 +1255,7 @@ const ACHIEVEMENTS = [
     name:'King of Salvation',
     desc:'Invoquer et vaincre Hartalis (raid Home Sweet Home).',
     detect:(a) => false, manual:true,
-    tip:'Utilise un Hartalis Slab dans l'Autel de combat. Boss de niveau 65.'
+    tip:'Utilise un Hartalis Slab dans l’Autel de combat. Boss de niveau 65.'
   },
 ];
 /* ── Charger/sauvegarder les succès cochés manuellement ── */
@@ -1280,7 +1280,7 @@ function renderAchievements(analysis) {
   let totalUnlocked = 0;
   const total = ACHIEVEMENTS.length;
 
-  // Calculer d'abord le total pour la barre
+  // Calculer d’abord le total pour la barre
   ACHIEVEMENTS.forEach(ach => {
     const autoUnlocked = analysis && !ach.manual && ach.detect(analysis);
     if (autoUnlocked || manual[ach.id]) totalUnlocked++;
@@ -1382,12 +1382,12 @@ function resetAchievements() {
 /* ── Hook : quand une save est analysée, mettre à jour les succès ── */
 function onSaveAnalyzed(analysis) {
   currentAnalysis = analysis;
-  // Si l'utilisateur est sur la page succès, re-rendre
+  // Si l’utilisateur est sur la page succès, re-rendre
   if (state.page === 'achievements') renderAchievements(analysis);
 }
 
 /* ══════════════════════════════════════════════════
-   PAGE MAPS — Points d'intérêt + filtres
+   PAGE MAPS — Points d’intérêt + filtres
 ══════════════════════════════════════════════════ */
 
 const MAP_POI = [

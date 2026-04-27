@@ -895,16 +895,16 @@ const PALS = [
   // ── #13 Gumoss (Herbe+Terre) ──
   {id:'013B',nameEN:'Gumoss Fleur',name:'Gumoss',el:['grass','ground'],hp:70,atk:70,def:70,spd:300,rank:1240,
    work:{planting:1},
-   partner:'Aide à la coupe — Améliore l'efficacité de coupe des arbres en équipe.',
+   partner:'Aide à la coupe — Améliore l’efficacité de coupe des arbres en équipe.',
    skills:['Tir Boueux','Coupe-Rafale','Tir de Pierre','Mitraille-Graines','Explose-Graines','Tornade Verte','Rayon Solaire'],
    drops:['Feuille de Gumoss','Graines de baies'],
-   desc:'Un Pal étrange dont le corps ressemble à de la sève d'arbre. Il perd graduellement ses forces s'il n'a rien pour recouvrir son corps.',
+   desc:'Un Pal étrange dont le corps ressemble à de la sève d’arbre. Il perd graduellement ses forces s’il n’a rien pour recouvrir son corps.',
    hab:['Collines ventées','Archipel Brise de mer']},
 
   // ── #13B Gumoss Fleur (variante spéciale) ──
   {id:'013C',nameEN:'Gumoss Fleur',name:'Gumoss Fleur',el:['grass','ground'],hp:70,atk:70,def:70,spd:300,rank:1240,
    work:{planting:1},
-   partner:'Aide à la coupe — Améliore l'efficacité de coupe des arbres en équipe.',
+   partner:'Aide à la coupe — Améliore l’efficacité de coupe des arbres en équipe.',
    skills:['Tir Boueux','Coupe-Rafale','Tir de Pierre','Mitraille-Graines','Explose-Graines','Tornade Verte','Rayon Solaire'],
    drops:['Feuille de Gumoss','Graines de baies','Belle Fleur (x2-3)'],
    desc:'Variante rare de Gumoss avec une Belle Fleur sur la tête. Extrêmement rare — rareté 10.',
@@ -913,10 +913,10 @@ const PALS = [
   // ── #24 Killamari (Ténèbres+Eau) ──
   {id:'024',nameEN:'Killamari',name:'Killamari',el:['dark','water'],hp:70,atk:70,def:60,spd:400,rank:1720,
    work:{},
-   partner:'Glisseur d'encre — Modifie les performances du planeur si Killamari est en équipe.',
+   partner:'Glisseur d’encre — Modifie les performances du planeur si Killamari est en équipe.',
    skills:['Tir Obscur','Jet Aqua','Canon à Air','Canon Aqua','Bubble Blast','Boule de Plasma','Laser Hydro'],
    drops:['Fluides de Pal','Tentacule de Killamari'],
-   desc:'Flotte librement. Son encre noire comme la nuit peut aveugler n'importe quel ennemi et lui permettre de s'échapper.',
+   desc:'Flotte librement. Son encre noire comme la nuit peut aveugler n’importe quel ennemi et lui permettre de s’échapper.',
    hab:['Archipel Brise de mer','Zone côtière']},
 
   // ── #24B Killamari Primo (Ténèbres+Eau, variante) ──
@@ -925,14 +925,14 @@ const PALS = [
    partner:'Glisseur de prestige — Modifie les performances du planeur si Killamari Primo est en équipe.',
    skills:['Tir Obscur','Jet Aqua','Canon à Air','Canon Aqua','Bubble Blast','Boule de Plasma','Laser Hydro'],
    drops:['Fluides de Pal','Tentacule de qualité'],
-   desc:'Variante d'élite de Killamari. Sa maîtrise de l'encre surpasse les autres calmars.',
+   desc:'Variante d’élite de Killamari. Sa maîtrise de l’encre surpasse les autres calmars.',
    hab:['Eaux profondes','Zones côtières obscures']},
 
   // ── #37 Woolipop (Neutre) ──
   {id:'037B',nameEN:'Woolipop',name:'Woolipop',el:['neutral'],hp:75,atk:70,def:70,spd:400,rank:1500,
    work:{farming:1},
    partner:'Barbe à papa — Produit des Barbe à papa quand assigné à une Ferme Pal.',
-   skills:['Canon à Air','Tir Puissant','Feuille Rasoir','Boule Foudre','Boule d'Énergie','Attaque Fantasme','Hyper Rayon'],
+   skills:['Canon à Air','Tir Puissant','Feuille Rasoir','Boule Foudre','Boule d’Énergie','Attaque Fantasme','Hyper Rayon'],
    drops:['Barbe à papa','Laine'],
    desc:'Ses fils roses et doux peuvent être filés en laine exquise. Les enfants des îles le poursuivent souvent, attirés par sa ressemblance avec la barbe à papa.',
    hab:['Collines ventées','Prairies']},
@@ -940,19 +940,19 @@ const PALS = [
   // ── #39 Dumud (Terre) ──
   {id:'039',nameEN:'Dumud',name:'Dumud',el:['ground'],hp:80,atk:80,def:70,spd:400,rank:1965,
    work:{watering:1,mining:1,transporting:1},
-   partner:'Améliorateur de Terre — Augmente l'ATK des Pals de type Terre en équipe.',
+   partner:'Améliorateur de Terre — Augmente l’ATK des Pals de type Terre en équipe.',
    skills:['Tir Boueux','Canon à Pierre','Explosion Rocailleuse','Vague de Sable','Tornade de Sable','Éboulement','Fracas Rocheux'],
    drops:['Huile de Pal','Viande de Dumud'],
-   desc:'Lorsqu'il est trop détendu, son temps de réaction diminue drastiquement. Même s'il était tranché en deux, il ne réaliserait probablement pas qu'il devrait être mort avant le lendemain matin.',
+   desc:'Lorsqu’il est trop détendu, son temps de réaction diminue drastiquement. Même s’il était tranché en deux, il ne réaliserait probablement pas qu’il devrait être mort avant le lendemain matin.',
    hab:['Désert','Dunes arides']},
 
   // ── #39B Dumud Gild (Terre+Eau, variante dorée) ──
   {id:'039B',nameEN:'Dumud Gild',name:'Dumud Gild',el:['ground','water'],hp:80,atk:80,def:70,spd:400,rank:1965,
    work:{watering:1,mining:1,transporting:1},
-   partner:'Améliorateur Doré — Augmente l'ATK des Pals de type Terre en équipe.',
+   partner:'Améliorateur Doré — Augmente l’ATK des Pals de type Terre en équipe.',
    skills:['Tir Boueux','Canon à Pierre','Explosion Rocailleuse','Vague de Sable','Tornade de Sable','Éboulement','Fracas Rocheux'],
-   drops:['Huile de Pal de Qualité','Viande de Dumud','Pièces d'or (50%)'],
-   desc:'Son corps réfléchit la lumière avec une clarté étonnante. Encore plus choquant, ses réflexes sont d'une lenteur encore plus prononcée que Dumud.',
+   drops:['Huile de Pal de Qualité','Viande de Dumud','Pièces d’or (50%)'],
+   desc:'Son corps réfléchit la lumière avec une clarté étonnante. Encore plus choquant, ses réflexes sont d’une lenteur encore plus prononcée que Dumud.',
    hab:['Oasis près de Duneshelter']},
 
   // ── #43 Fuack Ignis (Feu) ──
@@ -961,34 +961,34 @@ const PALS = [
    partner:'Surfeur de lave — Peut être utilisé comme monture aquatique sur lave.',
    skills:['Tir de Flamme','Boule de Feu','Lance-Flamme','Boule Solaire','Explosion Volcanique','Boule de Feu','Rayon Solaire'],
    drops:['Organe Flamme','Plumes de Fuack Ignis'],
-   desc:'Variante ardente de Fuack. Surfe sur les surfaces en fusion comme sur l'eau.',
+   desc:'Variante ardente de Fuack. Surfe sur les surfaces en fusion comme sur l’eau.',
    hab:['Île volcanique','Zones de lave']},
 
   // ── #46 Loupmoon Cryst (Glace) ──
   {id:'046B',nameEN:'Loupmoon Cryst',name:'Loupmoon Cryst',el:['ice'],hp:90,atk:95,def:80,spd:500,rank:1580,
    work:{},
-   partner:'Serre-Givre — Attaque l'ennemi ciblé avec Griffe de Neige quand activé.',
+   partner:'Serre-Givre — Attaque l’ennemi ciblé avec Griffe de Neige quand activé.',
    skills:['Missile de Glace','Coupe-Glace','Griffe de Neige','Mur de Gel','Balle de Givre','Ligne de Glaçons','Tempête de Glace'],
    drops:['Os','Précieuse Griffe','Organe de Congélation'],
-   desc:'Les cornes sur sa tête sont faites d'une mystérieuse glace qui ne fond jamais. La glace pilée en cassant une corne est vraiment exquise, mais les deux en sortent avec un mal de tête.',
+   desc:'Les cornes sur sa tête sont faites d’une mystérieuse glace qui ne fond jamais. La glace pilée en cassant une corne est vraiment exquise, mais les deux en sortent avec un mal de tête.',
    hab:['Montagnes enneigées','Zones arctiques']},
 
   // ── #57 Kelpsea (Eau) ──
   {id:'057',nameEN:'Kelpsea',name:'Kelpsea',el:['water'],hp:70,atk:70,def:60,spd:400,rank:1600,
    work:{watering:1},
-   partner:'Jet d'Eau — Augmente l'ATK des Pals de type Eau en équipe. Produit parfois des Fluides de Pal à la ferme.',
+   partner:'Jet d’Eau — Augmente l’ATK des Pals de type Eau en équipe. Produit parfois des Fluides de Pal à la ferme.',
    skills:['Jet Hydro','Canon Dragon','Canon Aqua','Bulles Explosives','Bombe de Puissance','Déferlante Aqua','Laser Hydro'],
    drops:['Fluides de Pal','Kelpsea brut'],
-   desc:'Sa personnalité change selon la qualité de l'eau dans laquelle il est né. Les Kelpsea nés dans des eaux polluées sont généralement de mauvaise humeur et deviennent vite des délinquants.',
+   desc:'Sa personnalité change selon la qualité de l’eau dans laquelle il est né. Les Kelpsea nés dans des eaux polluées sont généralement de mauvaise humeur et deviennent vite des délinquants.',
    hab:['Zones côtières','Archipel']},
 
   // ── #57B Kelpsea Ignis (Feu) ──
   {id:'057B',nameEN:'Kelpsea Ignis',name:'Kelpsea Ignis',el:['fire'],hp:70,atk:75,def:60,spd:400,rank:1580,
    work:{kindling:1},
-   partner:'Jet de Lave — Augmente l'ATK des Pals de type Feu en équipe.',
+   partner:'Jet de Lave — Augmente l’ATK des Pals de type Feu en équipe.',
    skills:['Tir de Flamme','Canon Dragon','Lance-Flamme','Boule Solaire','Bombe de Puissance','Déferlante Ardente','Rayon Solaire'],
    drops:['Organe Flamme','Kelpsea brut'],
-   desc:'Leur personnalité change selon la température de l'eau à leur naissance. Les Kelpsea nés dans des eaux chaudes ont généralement une personnalité passionnée et motivée.',
+   desc:'Leur personnalité change selon la température de l’eau à leur naissance. Les Kelpsea nés dans des eaux chaudes ont généralement une personnalité passionnée et motivée.',
    hab:['Zones volcaniques','Côtes chaudes']},
 
   // ── #59 Rayhound (Électrique) ──
@@ -996,7 +996,7 @@ const PALS = [
    work:{electric:2},
    partner:'Double Saut — Peut être monté. Permet de faire un double saut en montant.',
    skills:['Tir de Foudre','Boule Foudre','Onde de Choc','Frappe Tonnerre','Mur Électrique','Balle Foudre','Orage'],
-   drops:['Organe d'alimentation'],
+   drops:['Organe d’alimentation'],
    desc:'À pleine vitesse, il pourrait être confondu avec un éclair. Lorsque deux Rayhound entrent en collision, le son ressemble à un puissant coup de tonnerre. Vitesse sprint monture : 1150.',
    hab:['Désert électrique','Plaines orageuses']},
 
@@ -1013,9 +1013,9 @@ const PALS = [
   {id:'063',nameEN:'Lunaris',name:'Lunaris',el:['neutral'],hp:90,atk:80,def:90,spd:500,rank:2055,
    work:{gathering:1,handiwork:3,transporting:1},
    partner:'Antigravité — Augmente le poids maximum du joueur quand en équipe.',
-   skills:['Canon à Air','Tir Puissant','Coupe-Glace','Boule de Plasma','Boule d'Énergie','Attaque Fantasme','Hyper Rayon'],
+   skills:['Canon à Air','Tir Puissant','Coupe-Glace','Boule de Plasma','Boule d’Énergie','Attaque Fantasme','Hyper Rayon'],
    drops:['Éclat de paldium'],
-   desc:'Manipule quiconque croise son regard. C'est d'ailleurs souvent dans ce but qu'il reste à vos côtés. Combo unique : Paladius × Lunaris = Selyne.',
+   desc:'Manipule quiconque croise son regard. C’est d’ailleurs souvent dans ce but qu’il reste à vos côtés. Combo unique : Paladius × Lunaris = Selyne.',
    hab:['Zones mystiques','Île oubliée']},
 
   // ── #77 Verdash (Herbe) ──
@@ -1024,7 +1024,7 @@ const PALS = [
    partner:'Fusée des Plaines — Augmente la vitesse et change les attaques en type Herbe en combat.',
    skills:['Coupe-Rafale','Canon à Pierre','Mitraille-Graines','Explosion Rocailleuse','Tornade Verte','Rayon Solaire','Fracas Rocheux'],
    drops:['Cuir','Os'],
-   desc:'Il suffit à Verdash de fouler le sol pour le fertiliser et y faire pousser une herbe épaisse. Il ne s'approchera pas d'une terre traitée par herbicide.',
+   desc:'Il suffit à Verdash de fouler le sol pour le fertiliser et y faire pousser une herbe épaisse. Il ne s’approchera pas d’une terre traitée par herbicide.',
    hab:['Forêts des collines','Zones verdoyantes']},
 
   // ── #78 Vaelet (Herbe) ──
@@ -1032,17 +1032,17 @@ const PALS = [
    work:{gathering:2,handiwork:2,medicine:3,planting:2,transporting:1},
    partner:'Purification Tellurique — Augmente les objets obtenus contre les Pals Terre.',
    skills:['Nuage Toxique','Coupe-Rafale','Tir Empoisonné','Explose-Graines','Tornade Verte','Rayon Solaire','Fracas Rocheux'],
-   drops:['Médicament de fortune','Graine de tomate (50%)','Graine d'oignon (50%)'],
-   desc:'Le château était rempli des fleurs préférées du roi. Une grande bataille s'ensuivit et le feu gagna le château. C'est alors que l'esprit d'une unique fleur apparut. (Conte de fées)',
+   drops:['Médicament de fortune','Graine de tomate (50%)','Graine d’oignon (50%)'],
+   desc:'Le château était rempli des fleurs préférées du roi. Une grande bataille s’ensuivit et le feu gagna le château. C’est alors que l’esprit d’une unique fleur apparut. (Conte de fées)',
    hab:['Jardins enchantés','Forêts fleuries']},
 
   // ── #79 Sibelyx (Glace) ──
   {id:'079',nameEN:'Sibelyx',name:'Sibelyx',el:['ice'],hp:110,atk:90,def:100,spd:400,rank:5900,
    work:{cooling:2,farming:1,medicine:2},
-   partner:'Ver à soie — Attaque l'ennemi ciblé avec Lancer de Glaçon. Produit du Tissu de qualité à la Ferme.',
+   partner:'Ver à soie — Attaque l’ennemi ciblé avec Lancer de Glaçon. Produit du Tissu de qualité à la Ferme.',
    skills:['Missile de Glace','Coupe-Glace','Iceberg','Souffle Givré','Flamme Spirituelle','Balle de Givre','Tempête de Glace'],
    drops:['Tissu de qualité','Organe de Congélation (x2-3)'],
-   desc:'Aime la pluie et reste le plus souvent immobile lorsqu'elle tombe. Beaucoup de Kitsunebi viennent s'abriter en dessous. Produit du Tissu de qualité à la ferme.',
+   desc:'Aime la pluie et reste le plus souvent immobile lorsqu’elle tombe. Beaucoup de Kitsunebi viennent s’abriter en dessous. Produit du Tissu de qualité à la ferme.',
    hab:['Toundra glacée','Montagne Frostbound']},
 
   // ── #80 Elphidran (Dragon) ──
@@ -1051,7 +1051,7 @@ const PALS = [
    partner:'Dragon Sacré au Grand Cœur — Monture volante. Augmente objets obtenus contre Pals Ténèbres.',
    skills:['Souffle Dragon','Canon Dragon','Tornade de Dragon','Frappe Dragon','Griffe du Vide','Météore Dragon','Rayon Dragon'],
    drops:['Huile de Pal de Qualité (x2-3)'],
-   desc:'Aussi innocent qu'il en a l'air. Il peine à faire la distinction entre bien et mal. Combo : Elphidran × Surfent = Elphidran Aqua.',
+   desc:'Aussi innocent qu’il en a l’air. Il peine à faire la distinction entre bien et mal. Combo : Elphidran × Surfent = Elphidran Aqua.',
    hab:['Collines verdoyantes','Forêts de milieu de partie']},
 
   // ── #83 Finsider (Eau, Feybreak) ──
@@ -1084,10 +1084,10 @@ const PALS = [
   // ── #96B Bellanoir Libero (Ténèbres, raid) ──
   {id:'112B',nameEN:'Bellanoir Libero',name:'Bellanoir Libero',el:['dark'],hp:130,atk:130,def:130,spd:500,rank:20,
    work:{handiwork:2,medicine:4,transporting:2},
-   partner:'Iris Nocturne Libero — Attaque l'ennemi ciblé avec un puissant Rayon Cauchemar amplifié.',
-   skills:['Tir Obscur','Lame d'Ombre','Flamme Spirituelle','Attaque Fantasme','Rayon Cauchemar','Annihilation','Nova Obscure'],
+   partner:'Iris Nocturne Libero — Attaque l’ennemi ciblé avec un puissant Rayon Cauchemar amplifié.',
+   skills:['Tir Obscur','Lame d’Ombre','Flamme Spirituelle','Attaque Fantasme','Rayon Cauchemar','Annihilation','Nova Obscure'],
    drops:['Œuf Sombre Immense (garanti)'],
-   desc:'Version renforcée de Bellanoir pour le raid difficile. Sa puissance dépasse l'entendement. Invoquée avec des Slabs condensés.',
+   desc:'Version renforcée de Bellanoir pour le raid difficile. Sa puissance dépasse l’entendement. Invoquée avec des Slabs condensés.',
    hab:['Raid uniquement — Autel de combat']},
 
   // ── #115 Whalaska (Glace+Eau) ──
@@ -1096,7 +1096,7 @@ const PALS = [
    partner:'Céta-Frais — Monture nautique. Bonus pêche : jauge de capture partiellement remplie dès le départ.',
    skills:['Missile de Glace','Coupe-Glace','Iceberg','Geyser','Mur de Glace','Cryolance','Tempête de Glace'],
    drops:['Fluides de Pal','Minerai de Korallium (x2-3)','Organe de Congélation (x1-3)','Âme de grand Pal (1%)'],
-   desc:'Les Pals le prennent pour un iceberg et viennent s'y reposer lorsqu'il dort. Sa nature posée fait qu'il les tolère même une fois réveillé, mais cela génère un certain stress en lui. Combo : Whalaska × Chillet Ignis = Whalaska Ignis.',
+   desc:'Les Pals le prennent pour un iceberg et viennent s’y reposer lorsqu’il dort. Sa nature posée fait qu’il les tolère même une fois réveillé, mais cela génère un certain stress en lui. Combo : Whalaska × Chillet Ignis = Whalaska Ignis.',
    hab:['Eaux arctiques','Banquise']},
 
   // ── #115B Whalaska Ignis (Feu+Eau) ──
@@ -1114,7 +1114,7 @@ const PALS = [
    partner:'Spores Nocturnes — Empoisonne les ennemis voisins la nuit.',
    skills:['Tir Obscur','Nuage Toxique','Tir Empoisonné','Attaque Fantasme','Flamme Spirituelle','Boule de Plasma','Nova Obscure'],
    drops:['Médicament de fortune','Champignon mystérieux','Organe venimeux'],
-   desc:'Variante ténébreuse de Shroomer. Ses spores brillent d'une lueur bleutée mystérieuse la nuit.',
+   desc:'Variante ténébreuse de Shroomer. Ses spores brillent d’une lueur bleutée mystérieuse la nuit.',
    hab:['Forêts sombres','Grottes nocturnes']},
 
   // ── #126 Menasting Terra (Terre, variante) ──
@@ -1123,25 +1123,25 @@ const PALS = [
    partner:'Scorpion de Sable — Augmente les dégâts contre les Pals de type Normal.',
    skills:['Tir Boueux','Canon à Pierre','Explosion Rocailleuse','Éboulement','Tornade de Sable','Fracas Rocheux','Vague de Terre'],
    drops:['Cuir','Organe de Sable','Pierre du scorpion'],
-   desc:'Variante terrestre de Menasting. Son dard empoisonné peut transpercer même l'acier.',
+   desc:'Variante terrestre de Menasting. Son dard empoisonné peut transpercer même l’acier.',
    hab:['Désert','Dunes de sable']},
 
   // ── #131 Croajiro Noct (Ténèbres, variante) ──
   {id:'131B',nameEN:'Croajiro Noct',name:'Croajiro Noct',el:['dark'],hp:95,atk:100,def:90,spd:450,rank:1850,
    work:{handiwork:1,transporting:2},
-   partner:'Morsure Nocturne — Attaque avec une morsure empoisonnée dans l'obscurité.',
-   skills:['Tir Obscur','Morsure Sombre','Lame d'Ombre','Attaque Fantasme','Flamme Spirituelle','Boule de Plasma','Nova Obscure'],
+   partner:'Morsure Nocturne — Attaque avec une morsure empoisonnée dans l’obscurité.',
+   skills:['Tir Obscur','Morsure Sombre','Lame d’Ombre','Attaque Fantasme','Flamme Spirituelle','Boule de Plasma','Nova Obscure'],
    drops:['Os','Cuir','Ecaille sombre'],
-   desc:'Variante nocturne de Croajiro. Ses écailles absorbent la lumière, le rendant presque invisible dans l'obscurité.',
+   desc:'Variante nocturne de Croajiro. Ses écailles absorbent la lumière, le rendant presque invisible dans l’obscurité.',
    hab:['Marécages nocturnes','Zones sombres de Feybreak']},
 
   // ── #132 Celesdir (Neutre) ──
   {id:'132',nameEN:'Celesdir',name:'Celesdir',el:['neutral'],hp:100,atk:90,def:95,spd:500,rank:6000,
    work:{gathering:1,lumbering:4},
    partner:'Bois Céleste — Améliore massivement la récolte de bois en équipe.',
-   skills:['Canon à Air','Feuille Rasoir','Tir Puissant','Tornade Verte','Boule d'Énergie','Hyper Rayon','Fracas Rocheux'],
+   skills:['Canon à Air','Feuille Rasoir','Tir Puissant','Tornade Verte','Boule d’Énergie','Hyper Rayon','Fracas Rocheux'],
    drops:['Cuir','Bois précieux','Corne céleste'],
-   desc:'Cerf mythique aux bois lumineux. Sa présence fertilise instantanément la terre autour de lui. Abattage niveau 4 — l'un des meilleurs récolteurs de bois du jeu.',
+   desc:'Cerf mythique aux bois lumineux. Sa présence fertilise instantanément la terre autour de lui. Abattage niveau 4 — l’un des meilleurs récolteurs de bois du jeu.',
    hab:['Forêts sacrées de Feybreak']},
 
   // ── #145 Braloha (Herbe+Terre) ──
@@ -1150,15 +1150,15 @@ const PALS = [
    partner:'Soleil Accablant — Monture terrestre. Les Pals de la ferme pondent leurs œufs plus vite quand présent.',
    skills:['Tir Boueux','Explose-Graines','Tornade Verte','Lierre Rampant','Souffle Persistant','Rayon Solaire','Fracas Rocheux'],
    drops:['Cuir','Baie rouge (60%)','Graine de laitue (50%)','Graine de tomate (50%)'],
-   desc:'Dans son haleine, se cache une substance miraculeuse semblable à du pollen, capable de polliniser n'importe quelle plante. Pour un Pal végétal, c'est un compagnon plutôt complexe à gérer.',
+   desc:'Dans son haleine, se cache une substance miraculeuse semblable à du pollen, capable de polliniser n’importe quelle plante. Pour un Pal végétal, c’est un compagnon plutôt complexe à gérer.',
    hab:['Jungles tropicales','Zones herbeuses de Feybreak']},
 
   // ── Neptilius (Eau, Légendaire) ──
   {id:'153',nameEN:'Neptilius',name:'Neptilius',el:['water'],hp:105,atk:100,def:125,spd:750,rank:20,
    work:{watering:4},
-   partner:'Conquérant des Océans — Monture nautique ultra-rapide. Augmente l'ATK des Pals Eau.',
+   partner:'Conquérant des Océans — Monture nautique ultra-rapide. Augmente l’ATK des Pals Eau.',
    skills:['Jet Hydro','Canon Aqua','Geyser','Bulles Explosives','Déferlante Aqua','Tempête Aquatique','Laser Hydro'],
    drops:['Quartz pur (x10)','Polymère (x5)','Fibre de carbone (x5)','Diamant (30%)','Âme de grand Pal (1%)'],
-   desc:'Une fois le grand cataclysme scellé, un puissant monstre descendit des cieux. Depuis, il n'apparaît que dans les mers proches, aux yeux des seuls dignes de l'affronter. Arrosage Lv4 — meilleur Pal eau du jeu.',
+   desc:'Une fois le grand cataclysme scellé, un puissant monstre descendit des cieux. Depuis, il n’apparaît que dans les mers proches, aux yeux des seuls dignes de l’affronter. Arrosage Lv4 — meilleur Pal eau du jeu.',
    hab:['Eaux profondes légendaires']},
 ];
