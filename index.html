@@ -38,6 +38,47 @@
     .save-error    { padding: 1rem 1.25rem; background: rgba(255,61,26,.1); border: 1.5px solid var(--coral); border-radius: var(--r-md); font-size:.9rem; margin-bottom:1rem; }
     .save-uncaught { opacity: .7; }
     .save-progress-wrap { background: var(--glass); border: var(--bdr); border-radius: var(--r-lg); padding: 1.25rem; box-shadow: var(--sh); backdrop-filter: blur(4px); margin-bottom: 1.5rem; }
+    /* ── MAPS ── */
+    .map-wrapper { position:relative; border-radius:var(--r-lg); overflow:hidden; border:var(--bdr); box-shadow:var(--sh); }
+    .map-iframe { width:100%; height:580px; border:none; display:block; }
+    .map-filters { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
+    .map-filter-btn { font-family:var(--ff-m); font-size:.72rem; font-weight:700; padding:.35rem .8rem;
+      border-radius:6px; border:1.5px solid var(--line); background:var(--glass); color:var(--ink-s);
+      cursor:pointer; transition:all .15s; white-space:nowrap; }
+    .map-filter-btn:hover { border-color:var(--sun); color:var(--sun); }
+    .map-filter-btn.active { background:var(--sun); color:var(--ink); border-color:var(--ink); }
+    .map-poi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:.75rem; margin-top:1.5rem; }
+    .map-poi-card { background:var(--glass); border:var(--bdr); border-radius:var(--r-md); padding:1rem 1.1rem;
+      box-shadow:var(--sh); backdrop-filter:blur(4px); }
+    .map-poi-card h4 { font-family:var(--ff-d); font-size:.95rem; margin:0 0 .4rem; }
+    .map-poi-card p { font-size:.78rem; color:var(--ink-s); margin:0 0 .4rem; line-height:1.5; }
+    .map-poi-coords { font-family:var(--ff-m); font-size:.68rem; color:var(--mint-d); font-weight:700; }
+    .map-poi-lv { display:inline-block; font-family:var(--ff-m); font-size:.6rem; font-weight:800;
+      padding:.1rem .4rem; border-radius:4px; border:1.5px solid var(--ink); background:var(--coral); color:#fff; margin-left:.4rem; }
+    /* ── ACHIEVEMENTS ── */
+    .ach-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:.85rem; }
+    .ach-card {
+      display:flex; gap:.9rem; padding:1rem 1.1rem;
+      background:var(--glass); border:var(--bdr); border-radius:var(--r-md);
+      box-shadow:var(--sh); backdrop-filter:blur(4px); transition:all .2s;
+    }
+    .ach-card:hover { transform:translate(-2px,-2px); box-shadow:6px 6px 0 var(--ink); }
+    .ach-unlocked { background:rgba(255,208,0,.15); border-color:var(--sun); }
+    .ach-locked   { opacity:.75; }
+    .ach-icon { font-size:2rem; flex-shrink:0; width:48px; height:48px; display:flex; align-items:center; justify-content:center;
+      background:var(--paper-d); border:var(--bdr); border-radius:var(--r-sm); }
+    .ach-unlocked .ach-icon { background:linear-gradient(135deg,#FFF3B0,#FFE066); }
+    .ach-body { flex:1; min-width:0; }
+    .ach-name { font-family:var(--ff-d); font-weight:700; font-size:.95rem; margin-bottom:.2rem; line-height:1.2; }
+    .ach-desc { font-size:.78rem; color:var(--ink-s); margin-bottom:.4rem; line-height:1.5; }
+    .ach-tip  { font-size:.72rem; color:var(--ink-f); font-style:italic; margin-bottom:.4rem; padding:.25rem .5rem;
+      background:rgba(0,0,0,.04); border-radius:5px; border-left:3px solid var(--line); }
+    .ach-footer { display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+    .ach-badge { font-family:var(--ff-m); font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em;
+      padding:.12rem .45rem; border-radius:4px; border:1.5px solid var(--ink); }
+    .ach-auto { background:var(--lagoon); color:#fff; }
+    .ach-man  { background:var(--paper-d); color:var(--ink-f); }
+    .ach-done { background:var(--sun); color:var(--ink); }
   </style>
 </head>
 <body>
@@ -69,6 +110,8 @@
         <button class="nav-link"        data-nav="guides"     onclick="navigate('guides')">📜 Guides</button>
         <button class="nav-link"        data-nav="comparateur" onclick="navigate('comparateur')">⚖️ Comparer</button>
         <button class="nav-link"        data-nav="checklist"  onclick="navigate('checklist')">✅ Checklist</button>
+        <button class="nav-link"        data-nav="maps"       onclick="navigate('maps')">🗺️ Carte</button>
+        <button class="nav-link"        data-nav="achievements" onclick="navigate('achievements')">🏆 Succès</button>
         <button class="nav-link"        data-nav="saveimport" onclick="navigate('saveimport')" style="background:linear-gradient(135deg,rgba(139,47,255,.2),rgba(0,187,255,.15));border:1.5px solid rgba(139,47,255,.5)">💾 Ma Save</button>
       </nav>
 
@@ -519,6 +562,74 @@
       </div>
 
       <div id="checklist-container"></div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : MAPS
+  ══════════════════════════════════════ -->
+  <main id="pg-maps" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Carte Interactive</div>
+        <h1>🗺️ <em>Carte</em> de Palpagos</h1>
+        <p class="page-lead">Localise les Pals Alpha, donjons, coffres, effigies et points de téléportation. Données fournies par palworld.gg.</p>
+      </div>
+
+      <!-- Filtres rapides -->
+      <div class="map-filters" id="map-filters">
+        <button class="map-filter-btn active" onclick="setMapFilter('all',this)">🌐 Tout</button>
+        <button class="map-filter-btn" onclick="setMapFilter('alpha',this)">⭐ Boss Alpha</button>
+        <button class="map-filter-btn" onclick="setMapFilter('dungeon',this)">⛏️ Donjons</button>
+        <button class="map-filter-btn" onclick="setMapFilter('tower',this)">🗼 Tours</button>
+        <button class="map-filter-btn" onclick="setMapFilter('legendary',this)">💎 Légendaires</button>
+        <button class="map-filter-btn" onclick="setMapFilter('effigy',this)">🗿 Effigies</button>
+        <button class="map-filter-btn" onclick="setMapFilter('teleport',this)">⚡ Téléports</button>
+        <button class="map-filter-btn" onclick="setMapFilter('fishing',this)">🎣 Pêche</button>
+      </div>
+
+      <!-- Iframe carte officielle palworld.gg -->
+      <div class="map-wrapper">
+        <iframe
+          id="map-iframe"
+          class="map-iframe"
+          src="https://palworld.gg/fr/map"
+          title="Carte Interactive Palworld"
+          loading="lazy"
+          allowfullscreen>
+        </iframe>
+      </div>
+
+      <div style="margin-top:.75rem;padding:.65rem 1rem;background:rgba(0,0,0,.04);border-radius:var(--r-sm);font-size:.78rem;color:var(--ink-f);display:flex;align-items:center;gap:.5rem">
+        ℹ️ La carte interactive est fournie par <a href="https://palworld.gg/fr/map" target="_blank" rel="noopener" style="color:var(--mint-d);font-weight:700">palworld.gg</a>.
+        Si elle ne s'affiche pas, <a href="https://palworld.gg/fr/map" target="_blank" rel="noopener" style="color:var(--mint-d)">ouvre-la directement</a>.
+        <button onclick="document.getElementById('map-iframe').src='https://palworld.gg/fr/map'" style="margin-left:auto;font-family:var(--ff-m);font-size:.68rem;font-weight:700;padding:.25rem .6rem;border-radius:5px;border:1.5px solid var(--line);background:var(--glass);cursor:pointer">🔄 Recharger</button>
+      </div>
+
+      <!-- Points d'intérêt à la main -->
+      <div id="map-poi-section" style="margin-top:2rem">
+        <h2 style="font-family:var(--ff-d);font-size:1.2rem;margin-bottom:1rem" id="map-poi-title">📍 Points d'intérêt — Tous</h2>
+        <div class="map-poi-grid" id="map-poi-grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : ACHIEVEMENTS
+  ══════════════════════════════════════ -->
+  <main id="pg-achievements" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Succès Steam &amp; Xbox</div>
+        <h1>🏆 <em>Succès</em> Steam — 57 au total</h1>
+        <p class="page-lead">Suis ta progression vers les 57 succès Steam/Xbox Palworld (Base + Sakurajima + Feybreak + Crossplay + Terraria + Home Sweet Home). Importe ta sauvegarde pour la détection automatique, et coche manuellement les autres.</p>
+      </div>
+      <div id="ach-container">
+        <div style="text-align:center;padding:3rem;color:var(--ink-f)">
+          <div style="font-size:3rem;margin-bottom:.75rem">⏳</div>
+          Chargement…
+        </div>
+      </div>
     </div>
   </main>
 
