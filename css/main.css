@@ -591,3 +591,166 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
   .sec-card{flex-direction:column;gap:1rem}
   .hero-box{padding:1.25rem}
 }
+
+/* ── FILTRES TRAVAIL PALDECK ── */
+.work-filter-btn {
+  font-family: var(--ff-m); font-size: .65rem; font-weight: 700;
+  padding: .25rem .55rem; border-radius: 6px;
+  border: 1.5px solid var(--line); background: var(--glass);
+  color: var(--ink-s); cursor: pointer; transition: all .15s;
+  display: inline-flex; align-items: center; gap: .2rem;
+  white-space: nowrap;
+}
+.work-filter-btn:hover { border-color: var(--mint); color: var(--mint-d); }
+.work-filter-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+
+/* ══════════════════════════════════════════════════
+   POLISH GLOBAL v3
+══════════════════════════════════════════════════ */
+
+/* ── Recherche globale enrichie ── */
+.sr-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .45rem .75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: .8rem;
+  transition: background .12s;
+}
+.sr-item:hover { background: var(--paper-h); }
+.sr-item img { border-radius: 5px; flex-shrink: 0; }
+
+/* ── Cards postes enrichies ── */
+.poste-card {
+  transition: transform .15s, box-shadow .15s;
+}
+.poste-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+/* ── Tier list rows ── */
+#tierlist-container > div {
+  transition: box-shadow .15s;
+}
+#tierlist-container > div:hover {
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+/* ── Dashboard cards ── */
+#dashboard-content [style*="border-left:4px"] {
+  transition: transform .15s;
+}
+#dashboard-content [style*="border-left:4px"]:hover {
+  transform: translateX(3px);
+}
+
+/* ── Planificateur jobs ── */
+#planner-jobs > div:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+
+/* ── Filtres travail ── */
+#work-filter-chips {
+  margin-top: .4rem;
+}
+
+/* ── Responsive mobile amélioré ── */
+@media (max-width: 600px) {
+  .navbar-inner { flex-wrap: nowrap; overflow-x: auto; gap: .5rem; }
+  .nav-links { display: flex; overflow-x: auto; gap: .25rem; flex-wrap: nowrap; padding-bottom: .25rem; }
+  .nav-link { flex-shrink: 0; font-size: .68rem; padding: .4rem .6rem; }
+  .pals-grid { grid-template-columns: repeat(auto-fill, minmax(140px,1fr)); gap: .5rem; }
+  .pal-mini { padding: .6rem; }
+  #home-stats-bar { gap: .4rem; }
+  #home-stats-bar > div { min-width: 90px; padding: .4rem .6rem; }
+  .map-iframe { height: 350px; }
+  .ach-grid { grid-template-columns: 1fr; }
+  .map-poi-grid { grid-template-columns: 1fr; }
+  #tierlist-container > div { flex-direction: column; }
+  #tierlist-container > div > div:first-child { min-width: 100%; flex-direction: row; justify-content: flex-start; gap: 1rem; padding: .5rem 1rem; }
+}
+
+/* ── Animations subtiles ── */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pal-mini, .ach-card, .map-poi-card, .combo-card, .poste-card {
+  animation: slideIn .2s ease-out both;
+}
+
+/* ── Scrollbars stylées ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--paper-d); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-f); }
+
+/* ── Badges update ── */
+.ach-name > span {
+  opacity: .7;
+  font-size: .55rem !important;
+}
+
+/* ── Progress bars animées ── */
+.progress-fill {
+  transition: width 1s cubic-bezier(.25,.46,.45,.94);
+}
+
+/* ── Tour cards ── */
+.tour-card {
+  background: var(--glass);
+  border: var(--bdr);
+  border-radius: var(--r-md);
+  padding: 1.1rem;
+  box-shadow: var(--sh);
+  backdrop-filter: blur(4px);
+  transition: transform .15s, box-shadow .15s;
+}
+.tour-card:hover {
+  transform: translate(-2px,-2px);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+/* ── Raid cards ── */
+.raid-card {
+  background: var(--glass);
+  border: var(--bdr);
+  border-radius: var(--r-md);
+  padding: 1.1rem;
+  box-shadow: var(--sh);
+  backdrop-filter: blur(4px);
+  transition: transform .15s;
+}
+.raid-card:hover { transform: translateX(3px); }
+
+/* ── Leg cards ── */
+.leg-card {
+  background: var(--glass);
+  border: var(--bdr);
+  border-radius: var(--r-md);
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--sh);
+  backdrop-filter: blur(4px);
+  transition: transform .15s, box-shadow .15s;
+}
+.leg-card:hover {
+  transform: translate(-2px,-2px);
+  box-shadow: 6px 6px 0 var(--sun);
+}
+
+/* ── Focus visible pour accessibilité ── */
+button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+
+/* ── Home stats hover ── */
+#home-stats-bar > div:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}

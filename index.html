@@ -111,7 +111,10 @@
         <button class="nav-link"        data-nav="comparateur" onclick="navigate('comparateur')">⚖️ Comparer</button>
         <button class="nav-link"        data-nav="checklist"  onclick="navigate('checklist')">✅ Checklist</button>
         <button class="nav-link"        data-nav="maps"       onclick="navigate('maps')">🗺️ Carte</button>
+        <button class="nav-link"        data-nav="tierlist"   onclick="navigate('tierlist')">📊 Tier List</button>
         <button class="nav-link"        data-nav="achievements" onclick="navigate('achievements')">🏆 Succès</button>
+        <button class="nav-link"        data-nav="dashboard"  onclick="navigate('dashboard')">🎮 Dashboard</button>
+        <button class="nav-link"        data-nav="planner"    onclick="navigate('planner')">🏗️ Base</button>
         <button class="nav-link"        data-nav="saveimport" onclick="navigate('saveimport')" style="background:linear-gradient(135deg,rgba(139,47,255,.2),rgba(0,187,255,.15));border:1.5px solid rgba(139,47,255,.5)">💾 Ma Save</button>
       </nav>
 
@@ -145,6 +148,7 @@
               <div class="hero-cta">
                 <button class="btn btn-primary" onclick="navigate('pals')">📖 Explorer le Paldeck</button>
                 <button class="btn btn-secondary" onclick="navigate('guides')">📜 Voir les Guides</button>
+                <button class="btn btn-secondary" onclick="navigate('tierlist')" style="background:linear-gradient(135deg,var(--sun)33,var(--coral)22);border-color:var(--sun)">📊 Tier List</button>
               </div>
               <div class="hero-stats">
                 <div class="stat-box"><span class="stat-num">137</span><span class="stat-lbl">Pals</span></div>
@@ -318,8 +322,29 @@
             <input class="search-input" id="pal-search" type="text" placeholder="Chercher un Pal…" oninput="onPalSearch()">
             <button class="search-clear" id="pal-search-clear" style="display:none" onclick="clearPalSearch()">✕</button>
           </div>
+          <select id="pal-sort" onchange="renderPals()" style="font-family:var(--ff-m);font-size:.75rem;padding:.35rem .7rem;border-radius:8px;border:1.5px solid var(--line);background:var(--glass);cursor:pointer">
+            <option value="id">№ Numéro</option>
+            <option value="name">A→Z Nom</option>
+            <option value="hp">❤️ HP</option>
+            <option value="atk">⚔️ ATK</option>
+            <option value="rank">⭐ Power Rank</option>
+          </select>
         </div>
         <div class="filter-chips" id="el-filter-chips"></div>
+        <div id="work-filter-chips" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;align-items:center">
+          <span style="font-size:.68rem;color:var(--ink-f);font-family:var(--ff-m);font-weight:700;letter-spacing:.05em">TRAVAIL :</span>
+        </div>
+        <div style="display:flex;gap:.5rem;margin-top:.4rem;align-items:center;flex-wrap:wrap">
+          <span style="font-size:.68rem;color:var(--ink-f);font-family:var(--ff-m);font-weight:700;letter-spacing:.05em">NIVEAU MIN :</span>
+          <select id="work-level-min" onchange="renderPals()" style="font-family:var(--ff-m);font-size:.72rem;padding:.25rem .5rem;border-radius:6px;border:1.5px solid var(--line);background:var(--glass)">
+            <option value="0">Tous</option>
+            <option value="1">Lv 1+</option>
+            <option value="2">Lv 2+</option>
+            <option value="3">Lv 3+</option>
+            <option value="4">Lv 4 seulement</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="resetPalFilters()" style="font-size:.68rem">🗑️ Reset</button>
+        </div>
       </div>
 
       <div class="results-info" id="pals-count">Chargement…</div>
@@ -348,6 +373,8 @@
         <button class="tab" onclick="setBreedTab('combos')">⚗️ Combos clés</button>
         <button class="tab" onclick="setBreedTab('passives')">⭐ Passives</button>
         <button class="tab" onclick="setBreedTab('calculateur')">🧮 Calculateur</button>
+        <button class="tab" onclick="setBreedTab('reverse')">🔍 Inversé</button>
+        <button class="tab" onclick="setBreedTab('arbre')">🌳 Arbre</button>
       </div>
 
       <!-- Mécaniques -->
@@ -407,12 +434,12 @@
         <div class="passives-grid" id="passives-list"></div>
       </div>
 
-      <!-- Calculateur -->
+      <!-- Calculateur direct -->
       <div class="tab-panel" id="br-calculateur">
         <div class="calc-wrap">
           <div class="calc-box">
             <h3 style="font-family:var(--ff-d);font-size:1.3rem;margin-bottom:.3rem">🧮 Calculateur Power Rank</h3>
-            <p style="font-size:.85rem;color:var(--ink-s);margin-bottom:1.5rem">Sélectionne deux parents pour estimer l'enfant probable. Formule : (Rang A + Rang B) ÷ 2 → Pal le plus proche.</p>
+            <p style="font-size:.85rem;color:var(--ink-s);margin-bottom:1.5rem">Sélectionne deux parents → l'enfant probable. Formule : (Rang A + Rang B) ÷ 2.</p>
             <div class="calc-row">
               <div class="calc-col">
                 <label class="calc-lbl">Parent A</label>
@@ -430,7 +457,50 @@
             <div class="calc-result" id="calc-result">
               <span style="color:var(--ink-f);font-size:.88rem">Sélectionne deux parents pour voir le résultat</span>
             </div>
-            <p style="font-size:.75rem;color:var(--ink-f);margin-top:.75rem;font-style:italic">⚠️ Les combos fixes (Caprity×Beegarde=Anubis) ont priorité sur ce calcul. Ce calculateur est une estimation.</p>
+            <p style="font-size:.75rem;color:var(--ink-f);margin-top:.75rem;font-style:italic">⚠️ Les combos fixes ont priorité sur ce calcul. Ce calculateur est une estimation.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arbre d'élevage -->
+      <div class="tab-panel" id="br-arbre">
+        <div class="calc-wrap">
+          <div class="calc-box" style="max-width:700px">
+            <h3 style="font-family:var(--ff-d);font-size:1.3rem;margin-bottom:.3rem">🌳 Arbre d'élevage</h3>
+            <p style="font-size:.85rem;color:var(--ink-s);margin-bottom:1.25rem">
+              Sélectionne un Pal pour voir le chemin d'élevage complet depuis les Pals de base.
+            </p>
+            <div style="margin-bottom:1.25rem">
+              <label class="calc-lbl">Pal cible</label>
+              <select class="calc-select" id="tree-target" onchange="buildBreedTree()" style="width:100%;max-width:400px">
+                <option value="">— Choisir un Pal —</option>
+              </select>
+            </div>
+            <div id="tree-result" style="margin-top:1rem">
+              <span style="color:var(--ink-f);font-size:.88rem">Sélectionne un Pal pour voir son arbre d'élevage.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculateur Inversé -->
+      <div class="tab-panel" id="br-reverse">
+        <div class="calc-wrap">
+          <div class="calc-box" style="max-width:700px">
+            <h3 style="font-family:var(--ff-d);font-size:1.3rem;margin-bottom:.3rem">🔍 Calculateur Inversé</h3>
+            <p style="font-size:.85rem;color:var(--ink-s);margin-bottom:1.5rem">
+              Tu veux obtenir un Pal précis ? Sélectionne-le et vois <strong>toutes les combinaisons de parents</strong> possibles, triées par facilité d'accès.
+            </p>
+            <div style="margin-bottom:1.25rem">
+              <label class="calc-lbl">Pal enfant désiré</label>
+              <select class="calc-select" id="rev-target" onchange="calcReverse()" style="width:100%;max-width:400px">
+                <option value="">— Choisir un Pal —</option>
+              </select>
+              <div id="rev-target-preview" style="margin-top:.75rem;min-height:40px"></div>
+            </div>
+            <div id="rev-result" style="margin-top:1rem">
+              <span style="color:var(--ink-f);font-size:.88rem">Sélectionne un Pal cible pour voir les combinaisons.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -562,6 +632,75 @@
       </div>
 
       <div id="checklist-container"></div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : PLANIFICATEUR DE BASE
+  ══════════════════════════════════════ -->
+  <main id="pg-planner" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Optimisation</div>
+        <h1>🏗️ <em>Planificateur</em> de Base</h1>
+        <p class="page-lead">Sélectionne les postes que tu veux construire. Le planificateur te recommande les meilleurs Pals pour les couvrir — en tenant compte de ta sauvegarde si elle est importée.</p>
+      </div>
+      <div id="planner-content">
+        <div id="planner-selector">
+          <h3 style="font-family:var(--ff-d);margin-bottom:1rem">① Choisis tes postes de production</h3>
+          <div id="planner-jobs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.6rem;margin-bottom:1.5rem"></div>
+          <h3 style="font-family:var(--ff-d);margin-bottom:.75rem">② Niveau minimum désiré</h3>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+            <button class="tab active" id="plan-lv-1" onclick="setPlanLevel(1,this)">Lv 1+</button>
+            <button class="tab" id="plan-lv-2" onclick="setPlanLevel(2,this)">Lv 2+</button>
+            <button class="tab" id="plan-lv-3" onclick="setPlanLevel(3,this)">Lv 3+</button>
+            <button class="tab" id="plan-lv-4" onclick="setPlanLevel(4,this)">Lv 4 seulement</button>
+          </div>
+          <button class="btn btn-primary" onclick="runPlanner()" style="margin-bottom:2rem">🔍 Générer le plan optimal</button>
+        </div>
+        <div id="planner-result" style="display:none"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : DASHBOARD
+  ══════════════════════════════════════ -->
+  <main id="pg-dashboard" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Ma Progression</div>
+        <h1>🎮 <em>Tableau de bord</em></h1>
+        <p class="page-lead">Vue personnalisée basée sur ta sauvegarde. Importe ta save depuis la page <strong>💾 Ma Save</strong> pour activer le tableau de bord.</p>
+      </div>
+      <div id="dashboard-content">
+        <div class="empty-state">
+          <div style="font-size:3.5rem;margin-bottom:1rem">💾</div>
+          <div class="empty-title">Aucune sauvegarde importée</div>
+          <p style="color:var(--ink-f);max-width:400px;margin:.5rem auto 1.5rem">Importe ton fichier <code>Level.sav</code> pour voir tes Pals capturés, combos disponibles, succès proches et recommandations de base.</p>
+          <button class="btn btn-primary" onclick="navigate('saveimport')">💾 Importer ma sauvegarde</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : TIER LIST
+  ══════════════════════════════════════ -->
+  <main id="pg-tierlist" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Classement</div>
+        <h1>📊 <em>Tier List</em> v0.7</h1>
+        <p class="page-lead">Les Pals les plus puissants et utiles de Palworld. Source : palworld.gg. Clique sur un Pal pour voir sa fiche.</p>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem" id="tier-cat-filters">
+        <button class="tab active" onclick="setTierCat('all',this)">🌐 Tous</button>
+        <button class="tab" onclick="setTierCat('combat',this)">⚔️ Combat</button>
+        <button class="tab" onclick="setTierCat('travail',this)">🔨 Travail</button>
+        <button class="tab" onclick="setTierCat('monture',this)">🐉 Montures</button>
+      </div>
+      <div id="tierlist-container"></div>
     </div>
   </main>
 
@@ -711,6 +850,7 @@
 
 // Scripts
 <script src="data/pals.js"></script>
+<script src="data/palimages.js"></script>
 <script src="data/game.js"></script>
 <script src="js/save-parser.js"></script>
 <script src="js/app.js"></script>
