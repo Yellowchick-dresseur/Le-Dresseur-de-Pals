@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Le Dresseur de Pals — Guide Palworld Francophone</title>
+  <meta name="description" content="Le guide Palworld francophone complet : Paldeck, Breeding, Crafting, Guides, Raids, Légendaires.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,500&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <style>
+    /* Styles additionnels inline */
+    .pals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .sr-section { padding: .5rem 0; border-bottom: 1px solid var(--line); }
+    .sr-section:last-child { border-bottom: none; }
+    .sr-ttl { font-family: var(--ff-m); font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .15em; color: var(--ink-f); padding: .35rem .75rem .2rem; }
+    .sr-item { display: flex; align-items: center; gap: .5rem; padding: .45rem .75rem; cursor: pointer; font-size: .85rem; transition: background .15s; }
+    .sr-item:hover { background: var(--paper-d); }
+    .sr-item span { color: var(--ink-f); font-size: .75rem; margin-left: auto; }
+    #global-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--white); border: var(--bdr); border-radius: var(--r-md); box-shadow: var(--sh-lg); z-index: 300; max-height: 420px; overflow-y: auto; }
+    .global-search-wrap { position: relative; flex: 1; max-width: 420px; }
+    .global-search-input { width: 100%; padding: .45rem 1rem; border: 2px solid rgba(255,255,255,.3); border-radius: 999px; background: rgba(255,255,255,.12); color: #fff; font-family: var(--ff-b); font-size: .88rem; outline: none; transition: all .2s; }
+    .global-search-input::placeholder { color: rgba(255,255,255,.5); }
+    .global-search-input:focus { border-color: var(--sun); background: rgba(255,255,255,.2); box-shadow: 0 0 0 3px rgba(255,208,0,.2); }
+    /* ── SAVE IMPORT ── */
+    .save-drop-zone {
+      background: var(--glass); border: 3px dashed var(--line); border-radius: var(--r-xl);
+      padding: 3rem 2rem; text-align: center; cursor: pointer;
+      transition: all .2s; backdrop-filter: blur(4px); margin-bottom: 1rem;
+    }
+    .save-drop-zone:hover, .save-drop-zone.drag-over {
+      border-color: var(--purple); background: rgba(139,47,255,.06);
+      transform: translateY(-2px); box-shadow: var(--sh-lg);
+    }
+    .save-loading { padding: 1rem 1.25rem; background: rgba(0,187,255,.1); border: 1.5px solid var(--lagoon); border-radius: var(--r-md); font-size:.9rem; margin-bottom:1rem; }
+    .save-success  { padding: 1rem 1.25rem; background: rgba(0,227,74,.12); border: 1.5px solid var(--mint-d); border-radius: var(--r-md); font-size:.9rem; margin-bottom:1.5rem; }
+    .save-error    { padding: 1rem 1.25rem; background: rgba(255,61,26,.1); border: 1.5px solid var(--coral); border-radius: var(--r-md); font-size:.9rem; margin-bottom:1rem; }
+    .save-uncaught { opacity: .7; }
+    .save-progress-wrap { background: var(--glass); border: var(--bdr); border-radius: var(--r-lg); padding: 1.25rem; box-shadow: var(--sh); backdrop-filter: blur(4px); margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══════════════════════════════════════
+       NAVBAR
+  ══════════════════════════════════════ -->
+  <nav class="navbar">
+    <div class="container navbar-inner">
+      <div class="logo" onclick="navigate('home')">
+        <svg class="logo-sphere" width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="20" fill="#1a8c30" stroke="#0a1a06" stroke-width="3"/>
+          <path d="M22 2 C22 2 36 12 36 22 C36 32 22 42 22 42" fill="#00E34A" stroke="#0a1a06" stroke-width="2"/>
+          <circle cx="22" cy="22" r="4" fill="#fff" stroke="#0a1a06" stroke-width="2"/>
+          <line x1="2" y1="22" x2="42" y2="22" stroke="#0a1a06" stroke-width="2.5"/>
+        </svg>
+        <div class="logo-text">
+          <span class="logo-title">Le Dresseur de Pals</span>
+          <span class="logo-sub">Guide Palworld Francophone</span>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <button class="nav-link active" data-nav="home"       onclick="navigate('home')">🏠 Accueil</button>
+        <button class="nav-link"        data-nav="pals"       onclick="navigate('pals')">📖 Paldeck</button>
+        <button class="nav-link"        data-nav="breeding"   onclick="navigate('breeding')">💞 Élevage</button>
+        <button class="nav-link"        data-nav="crafting"   onclick="navigate('crafting')">⚒️ Craft</button>
+        <button class="nav-link"        data-nav="guides"     onclick="navigate('guides')">📜 Guides</button>
+        <button class="nav-link"        data-nav="comparateur" onclick="navigate('comparateur')">⚖️ Comparer</button>
+        <button class="nav-link"        data-nav="checklist"  onclick="navigate('checklist')">✅ Checklist</button>
+        <button class="nav-link"        data-nav="saveimport" onclick="navigate('saveimport')" style="background:linear-gradient(135deg,rgba(139,47,255,.2),rgba(0,187,255,.15));border:1.5px solid rgba(139,47,255,.5)">💾 Ma Save</button>
+      </nav>
+
+      <div class="global-search-wrap">
+        <input class="global-search-input" type="text" placeholder="🔍 Recherche globale…" oninput="onGlobalSearch(event)" onblur="closeGlobalSearch()">
+        <div id="global-results"></div>
+      </div>
+
+      <span class="stamp nav-ver">v0.7 Feybreak</span>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════
+       PAGE : HOME
+  ══════════════════════════════════════ -->
+  <main id="pg-home" class="page active">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-box">
+          <div class="hero-inner">
+            <div class="hero-content">
+              <div class="hero-tags">
+                <span class="stamp" style="color:var(--mint);border-color:var(--mint)">v0.7 Feybreak</span>
+                <span class="stamp" style="color:var(--lagoon);border-color:var(--lagoon)">137+ Pals</span>
+                <span class="stamp" style="color:var(--sun);border-color:var(--sun)">Guide Complet</span>
+              </div>
+              <h1>Le Guide Ultime<br><em class="hero-accent">du Dresseur de Pals</em></h1>
+              <p class="hero-lead">Paldeck complet, calculateur de breeding, arbre technologique, guides de boss et de raids — tout ce qu'il faut pour dominer le monde de Palworld.</p>
+              <div class="hero-cta">
+                <button class="btn btn-primary" onclick="navigate('pals')">📖 Explorer le Paldeck</button>
+                <button class="btn btn-secondary" onclick="navigate('guides')">📜 Voir les Guides</button>
+              </div>
+              <div class="hero-stats">
+                <div class="stat-box"><span class="stat-num">137</span><span class="stat-lbl">Pals</span></div>
+                <div class="stat-box"><span class="stat-num">22</span><span class="stat-lbl">Combos Élevage</span></div>
+                <div class="stat-box"><span class="stat-num">5</span><span class="stat-lbl">Tours de Boss</span></div>
+                <div class="stat-box"><span class="stat-num">6</span><span class="stat-lbl">Légendaires</span></div>
+                <div class="stat-box"><span class="stat-num">4</span><span class="stat-lbl">Raids</span></div>
+              </div>
+            </div>
+
+            <div class="hero-visual">
+              <div class="pal-deco-card" id="hero-pal-card">
+                <div class="pdc-hdr">
+                  <span>№ 110</span>
+                  <span class="stamp" style="color:var(--purple);border-color:var(--purple)">Légendaire</span>
+                </div>
+                <div class="pdc-illo">
+                  <svg width="180" height="180" viewBox="0 0 200 200">
+                    <!-- Corps Jetragon -->
+                    <ellipse cx="100" cy="120" rx="55" ry="35" fill="#6B3FCC" stroke="#0a1a06" stroke-width="3"/>
+                    <!-- Tête -->
+                    <circle cx="100" cy="75" r="32" fill="#8B5FFF" stroke="#0a1a06" stroke-width="3"/>
+                    <!-- Corne -->
+                    <polygon points="100,35 95,55 105,55" fill="#FFD000" stroke="#0a1a06" stroke-width="2"/>
+                    <!-- Yeux -->
+                    <circle cx="90" cy="70" r="7" fill="#fff" stroke="#0a1a06" stroke-width="2"/>
+                    <circle cx="110" cy="70" r="7" fill="#fff" stroke="#0a1a06" stroke-width="2"/>
+                    <circle cx="91" cy="71" r="3.5" fill="#FF3D1A"/>
+                    <circle cx="111" cy="71" r="3.5" fill="#FF3D1A"/>
+                    <!-- Ailes -->
+                    <path d="M55,105 Q20,70 30,50 Q40,85 65,100Z" fill="#7B4FDD" stroke="#0a1a06" stroke-width="2.5"/>
+                    <path d="M145,105 Q180,70 170,50 Q160,85 135,100Z" fill="#7B4FDD" stroke="#0a1a06" stroke-width="2.5"/>
+                    <!-- Queue -->
+                    <path d="M100,150 Q80,175 100,190 Q120,175 100,150Z" fill="#6B3FCC" stroke="#0a1a06" stroke-width="2.5"/>
+                    <!-- Détails -->
+                    <circle cx="92" cy="72" r="1.5" fill="#fff"/>
+                    <circle cx="112" cy="72" r="1.5" fill="#fff"/>
+                    <!-- Éclairs -->
+                    <path d="M25,120 L35,108 L30,115 L40,100" stroke="#FFD000" stroke-width="3" fill="none" stroke-linecap="round"/>
+                    <path d="M175,120 L165,108 L170,115 L160,100" stroke="#FFD000" stroke-width="3" fill="none" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="pdc-name">Jetragon</div>
+                <div style="font-size:.75rem;color:var(--ink-f);font-family:var(--ff-m);margin-bottom:.25rem">Nom original : Jetragon</div>
+                <div class="pdc-el" style="background:#9B5BE0">🐉 Dragon</div>
+                <div class="pdc-stats">
+                  <div class="pdc-stat-row">
+                    <span class="pdc-stat-lbl">HP</span>
+                    <div class="pdc-stat-bar"><div class="pdc-stat-fill" style="width:90%;background:var(--coral)"></div></div>
+                    <span class="pdc-stat-val">140</span>
+                  </div>
+                  <div class="pdc-stat-row">
+                    <span class="pdc-stat-lbl">ATQ</span>
+                    <div class="pdc-stat-bar"><div class="pdc-stat-fill" style="width:92%;background:#FF8800"></div></div>
+                    <span class="pdc-stat-val">140</span>
+                  </div>
+                  <div class="pdc-stat-row">
+                    <span class="pdc-stat-lbl">VIT</span>
+                    <div class="pdc-stat-bar"><div class="pdc-stat-fill" style="width:100%;background:var(--mint)"></div></div>
+                    <span class="pdc-stat-val">3300</span>
+                  </div>
+                </div>
+              </div>
+              <div class="sticky-note note-1">🚀 La monture<br>la + rapide du jeu !</div>
+              <div class="sticky-note note-2">💡 Cherche-le<br>au Pic du Dragon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sections -->
+    <section class="sections-wrap">
+      <div class="container">
+        <div class="sections-grid">
+          <div class="sec-card sc-mint fade-up" style="animation-delay:50ms" onclick="navigate('pals')">
+            <div class="sc-icon">📖</div>
+            <div class="sc-body">
+              <div class="sc-tag">Base de données</div>
+              <div class="sc-name">Paldeck Complet</div>
+              <p class="sc-desc">137+ Pals avec stats, affinités, drops, compétences de partenaire et habitats. Filtres par élément, recherche en temps réel et fiche détaillée.</p>
+              <span class="sc-arrow">Ouvrir →</span>
+            </div>
+          </div>
+          <div class="sec-card sc-sun fade-up" style="animation-delay:100ms" onclick="navigate('breeding')">
+            <div class="sc-icon">💞</div>
+            <div class="sc-body">
+              <div class="sc-tag">Élevage & Passives</div>
+              <div class="sc-name">Guide de Breeding</div>
+              <p class="sc-desc">22 combos clés, 17 passives classées par tier, calculateur Power Rank et toutes les mécaniques d'incubation expliquées.</p>
+              <span class="sc-arrow">Ouvrir →</span>
+            </div>
+          </div>
+          <div class="sec-card sc-coral fade-up" style="animation-delay:150ms" onclick="navigate('crafting')">
+            <div class="sc-icon">⚒️</div>
+            <div class="sc-body">
+              <div class="sc-tag">Technologie & Recettes</div>
+              <div class="sc-name">Arbre de Crafting</div>
+              <p class="sc-desc">Arbre technologique Lv.1 à 50, recettes essentielles, meilleurs Pals pour chaque poste de travail et meilleures stratégies de production.</p>
+              <span class="sc-arrow">Ouvrir →</span>
+            </div>
+          </div>
+          <div class="sec-card sc-lagoon fade-up" style="animation-delay:200ms" onclick="navigate('guides')">
+            <div class="sc-icon">📜</div>
+            <div class="sc-body">
+              <div class="sc-tag">Stratégie & Endgame</div>
+              <div class="sc-name">Guides & Raids</div>
+              <p class="sc-desc">Timeline de progression, 5 Tours de boss, 4 raids avec compositions, 6 légendaires avec localisations et stratégies de capture.</p>
+              <span class="sc-arrow">Ouvrir →</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bonus cards -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem">
+          <div class="sec-card sc-mint fade-up" style="animation-delay:250ms;cursor:pointer" onclick="navigate('comparateur')">
+            <div class="sc-icon" style="width:52px;height:52px;font-size:1.4rem">⚖️</div>
+            <div class="sc-body">
+              <div class="sc-name" style="font-size:1rem">Comparateur</div>
+              <p class="sc-desc" style="font-size:.8rem">Compare deux Pals stat par stat.</p>
+              <span class="sc-arrow">→</span>
+            </div>
+          </div>
+          <div class="sec-card sc-sun fade-up" style="animation-delay:300ms;cursor:pointer" onclick="navigate('checklist')">
+            <div class="sc-icon" style="width:52px;height:52px;font-size:1.4rem">✅</div>
+            <div class="sc-body">
+              <div class="sc-name" style="font-size:1rem">Checklist</div>
+              <p class="sc-desc" style="font-size:.8rem">Suis ta progression en jeu.</p>
+              <span class="sc-arrow">→</span>
+            </div>
+          </div>
+          <div class="sec-card sc-coral fade-up" style="animation-delay:350ms;cursor:pointer" onclick="navigate('pals')">
+            <div class="sc-icon" style="width:52px;height:52px;font-size:1.4rem">🔍</div>
+            <div class="sc-body">
+              <div class="sc-name" style="font-size:1rem">Recherche</div>
+              <p class="sc-desc" style="font-size:.8rem">Recherche globale dans tout le contenu.</p>
+              <span class="sc-arrow">→</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Pals -->
+    <section class="featured-wrap">
+      <div class="container">
+        <div class="feat-hdr">
+          <h2>Pals à la une</h2>
+          <button class="link-all" onclick="navigate('pals')">Voir tout le Paldeck →</button>
+        </div>
+        <div class="feat-grid" id="feat-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : PALDECK
+  ══════════════════════════════════════ -->
+  <main id="pg-pals" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Base de données</div>
+        <h1>📖 Paldeck <em>Complet</em></h1>
+        <p class="page-lead">137+ Pals avec stats, affinités de travail, compétences de partenaire et habitats. Clique sur un Pal pour sa fiche détaillée.</p>
+      </div>
+
+      <div class="filter-bar">
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+          <div class="search-box" style="flex:1;min-width:220px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input class="search-input" id="pal-search" type="text" placeholder="Chercher un Pal…" oninput="onPalSearch()">
+            <button class="search-clear" id="pal-search-clear" style="display:none" onclick="clearPalSearch()">✕</button>
+          </div>
+        </div>
+        <div class="filter-chips" id="el-filter-chips"></div>
+      </div>
+
+      <div class="results-info" id="pals-count">Chargement…</div>
+      <div class="pals-grid" id="pals-grid"></div>
+      <div id="pals-empty" class="empty-state" style="display:none">
+        <div style="font-size:3rem;margin-bottom:1rem">🔍</div>
+        <div class="empty-title">Aucun Pal trouvé</div>
+        <button class="btn btn-ghost btn-sm" onclick="clearPalSearch();setElFilter('all')">Réinitialiser les filtres</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : BREEDING
+  ══════════════════════════════════════ -->
+  <main id="pg-breeding" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Élevage & Génétique</div>
+        <h1>💞 Guide de <em>Breeding</em></h1>
+        <p class="page-lead">Combos optimaux, passives par tier, calculateur Power Rank et mécaniques complètes d'incubation.</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="setBreedTab('mecanique')">🧬 Mécaniques</button>
+        <button class="tab" onclick="setBreedTab('combos')">⚗️ Combos clés</button>
+        <button class="tab" onclick="setBreedTab('passives')">⭐ Passives</button>
+        <button class="tab" onclick="setBreedTab('calculateur')">🧮 Calculateur</button>
+      </div>
+
+      <!-- Mécaniques -->
+      <div class="tab-panel active" id="br-mecanique">
+        <div class="info-cards-grid">
+          <div class="info-card">
+            <div class="info-card-icon">🎂</div>
+            <h3>Le Gâteau — Indispensable</h3>
+            <p>Pour lancer l'élevage, tu dois fabriquer un Gâteau dans la Marmite de cuisson. Recette : <strong>5× Farine de blé + 8× Baies rouges + 7× Lait + 8× Œufs + 2× Miel.</strong><br><br>Sources : Ferme à blé (farine), Plantation de baies, Mozzarina (lait), Chikipi (œufs), Beegarde/Elizabee (miel).</p>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🥚</div>
+            <h3>Incubation des Œufs</h3>
+            <p>Durées selon la taille de l'œuf :<br>
+            <strong>Petit</strong> : ~10 min · <strong>Moyen</strong> : ~25 min · <strong>Grand</strong> : ~50 min · <strong>Gigantesque</strong> : ~2h · <strong>Méga</strong> : ~4h+<br><br>
+            ⚠️ Certains œufs nécessitent une température spécifique (chaud/froid). Place un Pal kindling ou cooling à côté de l'incubateur.</p>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🧬</div>
+            <h3>Héritage des Passives</h3>
+            <p>Lors d'un breeding, les passives de l'enfant sont tirées au sort :<br>
+            <strong>Père</strong> : 24% par passive · <strong>Mère</strong> : 20% par passive · <strong>Aléatoire</strong> : 21% · <strong>Aucune</strong> : 34%<br><br>
+            Pour obtenir 4 passives S, il faut souvent des dizaines de tentatives. Les parents ayant déjà 4 passives S augmentent considérablement les chances.</p>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">⚡</div>
+            <h3>Pal Alpha (★)</h3>
+            <p>Il existe une probabilité de 5% d'obtenir un Pal Alpha (étoile dorée) lors d'une incubation. Les Pals Alpha ont +20% de stats de base par rapport à la normale. Combiné à 4 passives S, ils sont les plus puissants du jeu.</p>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🔢</div>
+            <h3>Système Power Rank</h3>
+            <p>Le Power Rank détermine l'enfant obtenu lors d'un breeding. Formule : <strong>(Rang père + Rang mère) ÷ 2</strong>, puis le jeu cherche le Pal dont le rang est le plus proche.<br><br>Exemple : Caprity (170) + Beegarde (175) = 172.5 → Anubis (390) via combo fixe prioritaire.</p>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🎯</div>
+            <h3>Combos Fixes</h3>
+            <p>Certains combos sont "fixes" et ignorent le calcul Power Rank. Ils donnent toujours le même résultat, quelle que soient les stats des parents.<br><br>Exemples : <strong>Caprity × Beegarde = Anubis</strong> (toujours), <strong>Relaxaurus × Sparkit = Orserk</strong> (toujours), <strong>Necromus × Paladius = Frostallion Noct</strong> (unique).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combos -->
+      <div class="tab-panel" id="br-combos">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem">
+          <button class="btn btn-ghost btn-sm combo-filter-btn active" data-tag="all" onclick="setComboFilter('all')">Tous</button>
+          <button class="btn btn-ghost btn-sm combo-filter-btn" data-tag="travail" onclick="setComboFilter('travail')">🔨 Travail</button>
+          <button class="btn btn-ghost btn-sm combo-filter-btn" data-tag="combat" onclick="setComboFilter('combat')">⚔️ Combat</button>
+          <button class="btn btn-ghost btn-sm combo-filter-btn" data-tag="monture" onclick="setComboFilter('monture')">🐉 Montures</button>
+          <button class="btn btn-ghost btn-sm combo-filter-btn" data-tag="legendaire" onclick="setComboFilter('legendaire')">⭐ Légendaires</button>
+        </div>
+        <div class="combos-grid" id="combos-list"></div>
+      </div>
+
+      <!-- Passives -->
+      <div class="tab-panel" id="br-passives">
+        <div class="passives-grid" id="passives-list"></div>
+      </div>
+
+      <!-- Calculateur -->
+      <div class="tab-panel" id="br-calculateur">
+        <div class="calc-wrap">
+          <div class="calc-box">
+            <h3 style="font-family:var(--ff-d);font-size:1.3rem;margin-bottom:.3rem">🧮 Calculateur Power Rank</h3>
+            <p style="font-size:.85rem;color:var(--ink-s);margin-bottom:1.5rem">Sélectionne deux parents pour estimer l'enfant probable. Formule : (Rang A + Rang B) ÷ 2 → Pal le plus proche.</p>
+            <div class="calc-row">
+              <div class="calc-col">
+                <label class="calc-lbl">Parent A</label>
+                <select class="calc-select" id="calc-a" onchange="calcBreed()"></select>
+                <div class="calc-rank" id="calc-rank-a">—</div>
+              </div>
+              <div class="calc-x">×</div>
+              <div class="calc-col">
+                <label class="calc-lbl">Parent B</label>
+                <select class="calc-select" id="calc-b" onchange="calcBreed()"></select>
+                <div class="calc-rank" id="calc-rank-b">—</div>
+              </div>
+            </div>
+            <div class="calc-lbl" style="margin-bottom:.5rem">Résultat estimé</div>
+            <div class="calc-result" id="calc-result">
+              <span style="color:var(--ink-f);font-size:.88rem">Sélectionne deux parents pour voir le résultat</span>
+            </div>
+            <p style="font-size:.75rem;color:var(--ink-f);margin-top:.75rem;font-style:italic">⚠️ Les combos fixes (Caprity×Beegarde=Anubis) ont priorité sur ce calcul. Ce calculateur est une estimation.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : CRAFTING
+  ══════════════════════════════════════ -->
+  <main id="pg-crafting" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Technologie & Production</div>
+        <h1>⚒️ Crafting & <em>Tech Tree</em></h1>
+        <p class="page-lead">Arbre technologique complet du niveau 1 au 50, recettes essentielles et meilleurs Pals pour chaque poste de travail.</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="setCraftTab('arbre')">🌳 Arbre Tech</button>
+        <button class="tab" onclick="setCraftTab('recettes')">📋 Recettes clés</button>
+        <button class="tab" onclick="setCraftTab('postes')">🏭 Postes & Pals</button>
+      </div>
+
+      <!-- Arbre Tech -->
+      <div class="tab-panel active" id="cr-arbre">
+        <div class="tech-search-bar">
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input class="search-input" id="tech-search-input" type="text" placeholder="Chercher une technologie…" oninput="onTechSearch()">
+          </div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm tech-type-btn active" data-type="all" onclick="setTechFilter('all')">Tout</button>
+            <button class="btn btn-ghost btn-sm tech-type-btn" data-type="structure" onclick="setTechFilter('structure')">🏗️ Structures</button>
+            <button class="btn btn-ghost btn-sm tech-type-btn" data-type="arme" onclick="setTechFilter('arme')">⚔️ Armes</button>
+            <button class="btn btn-ghost btn-sm tech-type-btn" data-type="armure" onclick="setTechFilter('armure')">🛡️ Armures</button>
+            <button class="btn btn-ghost btn-sm tech-type-btn" data-type="monture" onclick="setTechFilter('monture')">🐉 Montures</button>
+            <button class="btn btn-ghost btn-sm tech-type-btn" data-type="ancien" onclick="setTechFilter('ancien')">🏺 Anciens</button>
+          </div>
+        </div>
+        <div class="tech-tree" id="tech-tree"></div>
+      </div>
+
+      <!-- Recettes -->
+      <div class="tab-panel" id="cr-recettes">
+        <div class="recipes-grid" id="recipes-list"></div>
+      </div>
+
+      <!-- Postes -->
+      <div class="tab-panel" id="cr-postes">
+        <div class="postes-grid" id="postes-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : GUIDES
+  ══════════════════════════════════════ -->
+  <main id="pg-guides" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Stratégie & Endgame</div>
+        <h1>📜 Guides & <em>Raids</em></h1>
+        <p class="page-lead">Timeline de progression, 5 Tours de boss, 4 raids avec compositions et 6 légendaires avec stratégies de capture.</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="setGuideTab('progression')">🗺️ Progression</button>
+        <button class="tab" onclick="setGuideTab('tours')">🗼 Tours de boss</button>
+        <button class="tab" onclick="setGuideTab('raids')">💀 Raids</button>
+        <button class="tab" onclick="setGuideTab('legendaires')">⭐ Légendaires</button>
+      </div>
+
+      <div class="tab-panel active" id="gu-progression">
+        <div class="timeline" id="guides-timeline"></div>
+      </div>
+      <div class="tab-panel" id="gu-tours">
+        <div class="tours-grid" id="tours-list"></div>
+      </div>
+      <div class="tab-panel" id="gu-raids">
+        <div class="raids-grid" id="raids-list"></div>
+      </div>
+      <div class="tab-panel" id="gu-legendaires">
+        <div class="leg-grid" id="leg-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : COMPARATEUR
+  ══════════════════════════════════════ -->
+  <main id="pg-comparateur" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Analyse comparative</div>
+        <h1>⚖️ <em>Comparateur</em> de Pals</h1>
+        <p class="page-lead">Sélectionne deux Pals depuis le Paldeck (bouton "Comparer") pour voir leurs statistiques côte à côte.</p>
+      </div>
+
+      <div id="compare-slots" class="compare-wrapper"></div>
+      <div class="compare-results" id="compare-results">
+        <p style="text-align:center;color:var(--ink-f);padding:1.5rem">Va dans le Paldeck, ouvre la fiche d'un Pal et clique sur "+ Comparer".</p>
+      </div>
+
+      <div style="margin-top:1.5rem;text-align:center">
+        <button class="btn btn-ghost" onclick="navigate('pals')">📖 Aller au Paldeck</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : CHECKLIST
+  ══════════════════════════════════════ -->
+  <main id="pg-checklist" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Suivi de progression</div>
+        <h1>✅ Checklist de <em>Progression</em></h1>
+        <p class="page-lead">Coche les objectifs accomplis. Ta progression est sauvegardée automatiquement dans le navigateur.</p>
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-label">
+          <span id="checklist-count" style="font-weight:700;font-size:.9rem">Chargement…</span>
+          <button class="btn btn-ghost btn-sm" onclick="resetChecklist()">🗑️ Réinitialiser</button>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="checklist-progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="checklist-container"></div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       PAGE : SAVE IMPORT
+  ══════════════════════════════════════ -->
+  <main id="pg-saveimport" class="page">
+    <div class="container" style="padding-top:2rem">
+      <div class="page-hdr">
+        <div class="kicker">Analyse de sauvegarde</div>
+        <h1>💾 Ma <em>Sauvegarde</em></h1>
+        <p class="page-lead">Importe ton fichier de sauvegarde Palworld pour voir ta complétion du Paldeck directement sur le site. Aucune donnée n'est envoyée — tout est traité localement dans ton navigateur.</p>
+      </div>
+
+      <!-- Instructions -->
+      <div class="card" style="padding:1.5rem;margin-bottom:1.5rem;backdrop-filter:blur(4px)">
+        <h3 style="font-family:var(--ff-d);font-size:1.1rem;margin-bottom:1rem">📂 Où trouver ta sauvegarde ?</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem">
+          <div style="background:var(--paper-d);border-radius:var(--r-md);padding:1rem;border:var(--bdr)">
+            <div style="font-weight:700;margin-bottom:.4rem">🖥️ PC (Steam)</div>
+            <code style="font-size:.75rem;color:var(--purple);word-break:break-all;display:block;background:rgba(139,47,255,.08);padding:.4rem .6rem;border-radius:6px;border:1px solid rgba(139,47,255,.2)">%LOCALAPPDATA%\Pal\Saved\SaveGames\&lt;id&gt;\&lt;world&gt;\</code>
+            <p style="font-size:.8rem;color:var(--ink-s);margin-top:.5rem">Importe <strong>Level.sav</strong> ou le fichier <strong>.sav</strong> avec ton Steam ID.</p>
+          </div>
+          <div style="background:var(--paper-d);border-radius:var(--r-md);padding:1rem;border:var(--bdr)">
+            <div style="font-weight:700;margin-bottom:.4rem">🎮 Xbox / Game Pass</div>
+            <code style="font-size:.75rem;color:var(--purple);word-break:break-all;display:block;background:rgba(139,47,255,.08);padding:.4rem .6rem;border-radius:6px;border:1px solid rgba(139,47,255,.2)">C:\Users\&lt;user&gt;\AppData\Local\Packages\PocketpairInc...\</code>
+            <p style="font-size:.8rem;color:var(--ink-s);margin-top:.5rem">Cherche un dossier <code>SaveGames</code> avec des fichiers <strong>.sav</strong>.</p>
+          </div>
+          <div style="background:var(--paper-d);border-radius:var(--r-md);padding:1rem;border:var(--bdr)">
+            <div style="font-weight:700;margin-bottom:.4rem">🔒 Confidentialité</div>
+            <p style="font-size:.8rem;color:var(--ink-s)">Le fichier est lu <strong>entièrement en local</strong> dans ton navigateur. Rien n'est envoyé à un serveur. Aucune donnée n'est conservée.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zone de drop / import -->
+      <div class="save-drop-zone" id="save-drop-zone" onclick="document.getElementById('save-file-input').click()" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <div style="font-size:3.5rem;margin-bottom:.75rem;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.15))">💾</div>
+        <div style="font-family:var(--ff-d);font-size:1.3rem;font-weight:700;margin-bottom:.4rem">Dépose ton fichier .sav ici</div>
+        <div style="color:var(--ink-s);font-size:.88rem;margin-bottom:1.25rem">ou clique pour parcourir</div>
+        <button class="btn btn-primary" onclick="event.stopPropagation();document.getElementById('save-file-input').click()">📂 Choisir un fichier .sav</button>
+        <input type="file" id="save-file-input" accept=".sav,.gz,.json" style="display:none" onchange="onSaveFileSelected(event)">
+      </div>
+
+      <!-- Avertissement format -->
+      <div style="margin:1rem 0;padding:.75rem 1rem;background:rgba(255,208,0,.12);border:1.5px solid var(--sun);border-radius:var(--r-md);font-size:.82rem;color:var(--ink-s)">
+        ⚠️ <strong>Limitation :</strong> Les sauvegardes Palworld sont en format binaire Unreal Engine 4. Cette fonctionnalité détecte les Pals en recherchant leurs noms dans le binaire. La détection est partielle — certains Pals peuvent être manqués selon la version du jeu et la structure exacte de ta save. Pour un résultat optimal, utilise le fichier <code>Level.sav</code> de ton monde principal.
+      </div>
+
+      <!-- Status + résultats -->
+      <div id="save-status"></div>
+      <div id="save-results"></div>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>
+        <div class="footer-name">Le Dresseur de Pals</div>
+        <p class="footer-desc" style="color:rgba(255,255,255,.7)">Guide Palworld francophone — v0.7 Feybreak</p>
+        <div style="display:flex;gap:.75rem;margin-top:1rem;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="navigate('pals')" style="font-size:.75rem">📖 Paldeck</button>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('breeding')" style="font-size:.75rem">💞 Breeding</button>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('crafting')" style="font-size:.75rem">⚒️ Craft</button>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('guides')" style="font-size:.75rem">📜 Guides</button>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <p class="footer-legal">Site fan non officiel. Palworld™ est une marque déposée de Pocketpair, Inc. Toutes les données sont issues du jeu v0.7 Home Sweet Home.</p>
+        <span class="stamp" style="color:var(--sun);border-color:var(--sun);font-size:.65rem">Fan Site · Non Officiel</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+// Scripts
+<script src="data/pals.js"></script>
+<script src="data/game.js"></script>
+<script src="js/save-parser.js"></script>
+<script src="js/app.js"></script>
+<script>
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('save-drop-zone').classList.add('drag-over');
+}
+function onDragLeave(e) {
+  document.getElementById('save-drop-zone').classList.remove('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('save-drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) onSaveFileSelected({target:{files:[file]}});
+}
+</script>
+</body>
+</html>
